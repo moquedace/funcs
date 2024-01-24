@@ -6,7 +6,7 @@
 
 # It's possible to obtain each morphometric variable by time or use the function bellow to obtain all in once. 
 
-# For obtain one by step it's necessary to define "dem" and "outdir" before the "morfometricas_saga" function and apply each Saga function separated.
+# For obtain one by step it's necessary to define "dem" and "outdir" before the "morphometry_saga" function and apply each Saga function separated.
 
 # outdir = output directory (i.e. "./Arquivos_Arthur/GTOPO30/morfometricas/")
 
@@ -525,7 +525,7 @@ morphometry_saga <- function(dem,
                           RADIUS_VALLEY = 1000,
                           RADIUS_HILL = 1000,
                           THRESHOLD= 100,
-                          METHOD = 1), flags = "s", env = env)
+                          METHOD = 0), flags = "s", env = env)
   
   if (verbose == TRUE) {
     print("Valley and Ridge Detection (Top Hat Approach) Finished")
