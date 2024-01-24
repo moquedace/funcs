@@ -78,7 +78,7 @@ morphometry_saga <- function(dem,
   dem <- tmp_inname
   
   if (verbose == TRUE) {
-    print("---------------------------- Início da geração de derivadas do MDE")
+    print("---------------------------- Start of generating DEM derivatives")
   } 
   
   
@@ -154,7 +154,7 @@ morphometry_saga <- function(dem,
                        flags = "s", env = env)
     
     if (verbose == TRUE) {
-      print("Direct Insolation, Diffuse Insolation, Total Insolation, Direct to Diffuse Ratio, Duration of Insolation, Sunrise and Sunset Finished")
+      print("Potential Incoming Solar Radiation Finished")
     }
   }
   
@@ -516,10 +516,21 @@ morphometry_saga <- function(dem,
   
   
   # Wetness Index -------------------------------------------------------------
-  rsaga.wetness.index(in.dem = dem,
-                      out.wetness.index = paste0(outdir,
-                                                 "saga_wetness_index.sgrd"),
-                      flags = "s", env = env)
+  rsaga.geoprocessor("ta_hydrology",
+                     module = 15,
+                     list(DEM = dem,
+													AREA = paste0(outdir, "/area_twi.sgrd"),
+													SLOPE = paste0(outdir, "/slope_twi.sgrd"),
+													AREA_MOD = paste0(outdir, "/area_mod_twi.sgrd"),
+													TWI = paste0(outdir, "/wetness index.sgrd"),
+                      	  SUCTION = 10,
+                          AREA_TYPE = 1,
+													SLOPE_TYPE = 1,
+													SLOPE_MIN = 0,
+													SLOPE_OFF = 0,
+													SLOPE_WEIGHT = 1), 
+											flags = "s", env = env)
+
   
   if (verbose == TRUE) {
     print("Wetness Index Finished")
@@ -548,10 +559,10 @@ morphometry_saga <- function(dem,
   }
   
   if (verbose == TRUE) {
-    print("-------------------------------- Fim da geração de derivadas do MDE")
+    print("-------------------------------- End of generating DEM derivatives")
     
     
-    print("------------------------- Inicio da conversão dos arquivos para tif")
+    print("------------------------- Start converting files to tif")
   }
   
   
@@ -562,7 +573,7 @@ morphometry_saga <- function(dem,
   
   if (verbose == TRUE) {
     if (align_rasters == TRUE) {
-      print("----------------------------------------------- Alinhando rasters")
+      print("----------------------------------------------- Aligning rasters")
     }
   }
   
@@ -592,13 +603,13 @@ morphometry_saga <- function(dem,
   
   if (verbose == TRUE) {
     if (align_rasters == TRUE) {
-      print("---------------------------------- Fim do alinhamento dos rasters")
+      print("---------------------------------- End of raster alignment")
     }
   }
   
   if (verbose == TRUE) {
-    print("---------------------------- Fim da conversão dos arquivos para tif")
-    print("----------------------------------------- Apagando arquivos não tif")
+    print("---------------------------- End of converting files to tif")
+    print("----------------------------------------- Deleting non-TIF files")
   }
   
   # Delete non-tiff files -----------------------------------------------------
@@ -610,7 +621,7 @@ morphometry_saga <- function(dem,
   remove(result_rasters, result_list_tif, result_list)
   
   if (verbose == TRUE) {
-    print("----------------------------------------- Arquivos não tif apagados")
+    print("----------------------------------------- Deleted non-TIF files")
   }
   
 }
