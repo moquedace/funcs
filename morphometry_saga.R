@@ -140,7 +140,7 @@ morphometry_saga <- function(dem,
 			     module = 2,
 			     list(GRD_DEM = dem,
 				  GRD_VAPOUR_DEFAULT = 10,
-				   GRD_LINKE_DEFAULT = 3,
+				  GRD_LINKE_DEFAULT = 3,
 				  SOLARCONST = 1367,
 				  LOCALSVF = 1,
 				  UNITS = 0,
@@ -166,12 +166,12 @@ morphometry_saga <- function(dem,
 				  GRD_TOTAL = paste0(outdir, "/solar_total.sgrd")),
 			     flags = "s", env = env)
 	  
-	  # range of days PERIOD = 2
+	  # day PERIOD = 1
 	  rsaga.geoprocessor("ta_lighting",
 			     module = 2,
 			     list(GRD_DEM = dem,
 				  GRD_VAPOUR_DEFAULT = 10,
-				   GRD_LINKE_DEFAULT = 3,
+				  GRD_LINKE_DEFAULT = 3,
 				  SOLARCONST = 1367,
 				  LOCALSVF = 1,
 				  UNITS = 0,
@@ -525,7 +525,7 @@ morphometry_saga <- function(dem,
                           RADIUS_VALLEY = 1000,
                           RADIUS_HILL = 1000,
                           THRESHOLD= 100,
-                          METHOD = 0), flags = "s", env = env)
+                          METHOD = 1), flags = "s", env = env)
   
   if (verbose == TRUE) {
     print("Valley and Ridge Detection (Top Hat Approach) Finished")
