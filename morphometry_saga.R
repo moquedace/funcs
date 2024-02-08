@@ -32,7 +32,7 @@ morphometry_saga <- function(dem,
   
   # Checking packages ---------------------------------------------------------
   # Install packages not yet installed --------------------------------------
-  pkg <- c("RSAGA", "terra", "rgdal", "dplyr", "stringr")
+  pkg <- c("RSAGA", "terra", "dplyr", "stringr")
   
   
   installed_packages <- pkg %in% rownames(installed.packages())
