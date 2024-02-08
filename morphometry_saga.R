@@ -17,7 +17,7 @@
 
 
 # Adaptation Cássio Moquedace
-# Install SAGA-GIS 6.2 (https://sourceforge.net/projects/saga-gis/files/SAGA%20-%206/SAGA%20-%206.2.0/saga-6.2.0_x64_setup.exe/download)
+# Install SAGA-GIS 7.0 (https://sourceforge.net/projects/saga-gis/files/SAGA%20-%207/SAGA%20-%207.0.0/saga-7.0.0_x64_setup.exe/download)
 
 # Function morphometric -------------------------------------------------------
 morphometry_saga <- function(dem,
@@ -59,18 +59,14 @@ morphometry_saga <- function(dem,
   # Calculate median latitude -----------------------------------------------
   # rast (if not in epsg:4326 datum, longer than using "sf") ----------------
   if (sol_rad == TRUE) {
-    
-    mde_rst <- dem
-    
-    if (crs(mde_rst, proj = T) != rgdal::CRSargs(CRS("EPSG:4326"))) {
-      mde_rst <- terra::project(mde_rst, y = "EPSG:4326", method = "near")
-      
-    }
-    
-    ext <- terra::ext(mde_rst) %>% as.vector()
-    latitude <- as.numeric((ext[4] - ext[3]) / 2 + ext[3])
-    
-  }
+  
+  mde_rst <- dem
+  mde_rst <- terra::project(mde_rst, y = "EPSG:4326", method = "near")
+  
+  ext <- terra::ext(mde_rst) %>% as.vector()
+  latitude <- as.numeric((ext[4] - ext[3]) / 2 + ext[3])
+  
+}
   
   tmp_inname <- sprintf("%s.tif", tempfile())
   terra::writeRaster(dem, tmp_inname,  overwrite = T, gdal = c("COMPRESS=LZW"))
