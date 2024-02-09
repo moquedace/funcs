@@ -57,8 +57,7 @@ morphometry_saga <- function(dem,
   
   
   # Calculate median latitude -----------------------------------------------
-  # rast (if not in epsg:4326 datum, longer than using "sf") ----------------
-  if (sol_rad == TRUE) {
+    if (sol_rad == TRUE) {
   
   mde_rst <- dem
   mde_rst <- terra::project(mde_rst, y = "EPSG:4326", method = "near")
