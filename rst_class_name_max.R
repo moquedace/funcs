@@ -45,9 +45,9 @@ rst_class_name_max <- function(rst) {
   
   r_class <- df %>% 
     dplyr::select(-class_dom) %>% 
-    rast(type = "xyz", digits = 1,
+    rast(type = "xyz",
          crs = paste0(crs(rst, describe = T)$authority,
-                      ":", crs(rst, describe = T)$code), digits = 2) 
+                      ":", crs(rst, describe = T)$code), digits = 4) 
   
   
   levels(r_class) <- g_class
