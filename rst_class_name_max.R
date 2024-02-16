@@ -59,22 +59,6 @@ rst_class_name_max <- function(rst) {
 
 
 
-r <- rst_class_name_max(rst = r)
-
-
-
-
-plot(r, type = "classes")
-
-
-
-
-
-
-
-
-
-
 
 
 
