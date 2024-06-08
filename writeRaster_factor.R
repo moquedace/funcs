@@ -27,7 +27,7 @@ writeRaster_factor <- function(rst, cd_name, filename) {
                                 datatype = "INT4U"),
                      overwrite = T)
   
-  
+  names(cd_name)[1] <- "code"
   
   as.data.frame(table(as.vector(raster::raster(rst))), 
                 stringsAsFactors = FALSE) %>%
