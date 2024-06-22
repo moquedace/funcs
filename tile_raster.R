@@ -76,7 +76,7 @@ tile_raster <- function(rst, rows, cols, outdir, graph = TRUE,
       
       writeRaster(r_mask, filename = file, gdal = "COMPRESS=LZW", overwrite = TRUE)
       message("Tile salvo: ", file)
-      
+      gc()
       return(file)
     }
     
@@ -105,7 +105,7 @@ tile_raster <- function(rst, rows, cols, outdir, graph = TRUE,
       
       writeRaster(r_mask, filename = file, gdal = "COMPRESS=LZW", overwrite = TRUE)
       message("Tile salvo: ", file)
-      
+      gc()
       return(file)
     }
     
