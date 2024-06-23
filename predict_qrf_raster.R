@@ -40,6 +40,7 @@ predict_qrf_raster <- function(object,
   
   message("Convertendo o raster para data.frame...")
   df_rst <- rst %>% as.data.frame(xy = TRUE, na.rm = TRUE)
+  gc()
   
   if (nrow(df_rst) == 0) {
     stop("O raster especificado não contém dados.")
@@ -137,4 +138,5 @@ predict_qrf_raster <- function(object,
   message("Função concluída. Tempo total de execução: ", round(total_time, 2), " ", units(total_time))
   
   return(r_res)
+  gc()
 }
