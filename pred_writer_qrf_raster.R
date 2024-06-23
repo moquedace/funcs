@@ -1,5 +1,5 @@
 
-pred_writer_qrf_raster <- function(model,
+pred_writer_qrf_raster <- function(model = NULL,
                                    varfact = NULL,
                                    tile = NULL,
                                    what = list(quantile_0.25 = 0.25,
