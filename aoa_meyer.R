@@ -166,7 +166,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     train_scaled[, x] * unlist(trainDI$weight[x])
   })
 
-  # Identificação de linhas válidas
+  # Remoção de linhas com NA
   okrows <- which(apply(newdata, 1, function(x) all(!is.na(x))))
   newdataCC <- newdata[okrows, , drop = F]
   if (method == "MD") {
