@@ -16,7 +16,8 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   # Pacotes necessários para a função
   required_packages <- c("future", "foreach", "doFuture", "doParallel", "dplyr", "caret", "CAST", "terra", "stars", "FNN", "MASS")
   install_and_load_packages(required_packages)
-  
+
+  options(future.globals.maxSize = 2 * 1024^3) 
   # Função para encontrar o índice do vizinho mais próximo
   .knnindexfun <- function (point, reference, method, S_inv = NULL, maxLPD = maxLPD) {
     if (method == "L2") {
