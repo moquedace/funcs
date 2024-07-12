@@ -1,7 +1,7 @@
 aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = NA, 
                       variables = "all", CVtest = NULL, CVtrain = NULL, method = "L2", 
                       useWeight = TRUE, LPD = FALSE, maxLPD = 1, indices = FALSE, 
-                      verbose = TRUE, parallel = FALSE, ncores) 
+                      verbose = TRUE, parallel = FALSE, ncores = 1) 
 {
   # Função para instalar e carregar pacotes necessários
   install_and_load_packages <- function(packages) {
@@ -12,14 +12,20 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     }
     invisible(lapply(packages, library, character.only = TRUE))
   }
-  
-  # Pacotes necessários para a função
-  required_packages <- c("future", "foreach", "doFuture", "doParallel", "dplyr", "caret", "CAST", "terra", "stars", "FNN", "MASS")
+
+  required_packages <- c("future", "foreach", "doFuture", "doParallel", 
+                         "dplyr", "caret", "CAST", "terra", "FNN", "MASS", "future.apply")
   install_and_load_packages(required_packages)
 
   options(future.globals.maxSize = 2 * 1024^3) 
-
-  # Função para encontrar o índice do vizinho mais próximo
+  
+  # Início do timer
+  start_time <- Sys.time()
+  if (verbose) {
+    message("Iniciando a função aoa_meyer...")
+  }
+  
+  # Funções auxiliares internas
   .knnindexfun <- function (point, reference, method, S_inv = NULL, maxLPD = maxLPD) {
     if (method == "L2") {
       return(FNN::knnx.index(reference, point, k = maxLPD))
@@ -27,8 +33,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
       stop("MD currently not implemented for LPD")
     }
   }
-  
-  # Função para calcular a distância do vizinho mais próximo
+
   .knndistfun <- function (point, reference, method, S_inv = NULL, maxLPD = maxLPD) {
     if (method == "L2") {
       return(FNN::knnx.dist(reference, point, k = maxLPD))
@@ -39,28 +44,27 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     }
   }
   
-  # Início da medição do tempo
-  start_time <- Sys.time()
+  # Verificação e preparação dos dados
   if (verbose) {
-    message("Iniciando o cálculo de AOA...")
+    message("Verificando e preparando os dados...")
   }
 
-  # Preparação dos dados
   newdata <- rast(newdata)
   as_stars <- FALSE
   leading_digit <- any(grepl("^{1}[0-9]", names(newdata)))
+
   if (inherits(newdata, "stars")) {
     if (!requireNamespace("stars", quietly = TRUE)) 
       stop("package stars required: install that first")
     newdata <- methods::as(newdata, "SpatRaster")
     as_stars <- TRUE
   }
+  
   if (inherits(newdata, "Raster")) {
     message("Raster will soon not longer be supported. Use terra or stars instead")
     newdata <- methods::as(newdata, "SpatRaster")
   }
 
-  # Verificação de maxLPD
   if (LPD == TRUE) {
     if (is.numeric(maxLPD)) {
       if (maxLPD <= 0) {
@@ -88,71 +92,66 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
       } else if (!is.null(train)) {
         train[[1]]
       })) || maxLPD %% 1 != 0) {
-        stop("maxLPD cannot be bigger than the number of training samples. Define a number between 0 and 1 for a percentage of the number of training samples, ou um número inteiro maior que 1 e menor que o número de amostras de treinamento.")
+        stop("maxLPD cannot be bigger than the number of training samples. Define a number between 0 and 1 for a percentage of the number of training samples, or a whole number larger than 1 and smaller than the number of training samples.")
       }
     } else {
-      stop("maxLPD must be a number. Define a number between 0 and 1 for a percentage of the number of training samples, ou um número inteiro maior que 1 e menor que o número de amostras de treinamento.")
+      stop("maxLPD must be a number. Define a number between 0 and 1 for a percentage of the number of training samples, or a whole number larger than 1 e smaller than the number of training samples.")
     }
   }
 
-  # Calculo do trainDI se não fornecido
   if (!inherits(trainDI, "trainDI")) {
     if (verbose) {
-      message("No trainDI provided. Calculando trainDI...")
+      message("No trainDI provided.")
     }
     trainDI <- trainDI(model, train, variables, weight, 
                        CVtest, CVtrain, method, useWeight, LPD, verbose)
   }
+
   if (LPD == TRUE) {
     trainDI$maxLPD <- maxLPD
   }
-  
-  # Verificação das variáveis correspondentes entre newdata e trainDI
+
   if (any(trainDI$variables %in% names(newdata) == FALSE)) {
     if (leading_digit) {
       stop("names of newdata start with leading digits, automatically added 'X' results in mismatching names of train data in the model")
     }
     stop("names of newdata don't match names of train data in the model")
   }
-  
+
   out <- NA
   if (inherits(newdata, "SpatRaster")) {
     out <- newdata[[1]]
     names(out) <- "DI"
   }
+
   if (inherits(newdata, "SpatRaster")) {
     if (any(is.factor(newdata))) {
       newdata[[which(is.factor(newdata))]] <- as.numeric(newdata[[which(is.factor(newdata))]])
     }
     newdata <- terra::as.data.frame(newdata, na.rm = FALSE)
   }
-  newdata <- newdata[, na.omit(match(trainDI$variables, names(newdata))), 
-                     drop = FALSE]
+
+  newdata <- newdata[, na.omit(match(trainDI$variables, names(newdata))), drop = FALSE]
   catvars <- trainDI$catvars
+
   if (!inherits(catvars, "error") & length(catvars) > 0) {
     for (catvar in catvars) {
-      trainDI$train[, catvar] <- droplevels(trainDI$train[, 
-                                                          catvar])
+      trainDI$train[, catvar] <- droplevels(trainDI$train[, catvar])
       newdata[, catvar] <- factor(newdata[, catvar])
-      newdata[!newdata[, catvar] %in% unique(trainDI$train[, 
-                                                           catvar]), catvar] <- NA
+      newdata[!newdata[, catvar] %in% unique(trainDI$train[, catvar]), catvar] <- NA
       newdata[, catvar] <- droplevels(newdata[, catvar])
-      dvi_train <- predict(caret::dummyVars(paste0("~", 
-                                                   catvar), data = trainDI$train), trainDI$train)
-      dvi_newdata <- predict(caret::dummyVars(paste0("~", 
-                                                     catvar), data = trainDI$train), newdata)
+      dvi_train <- predict(caret::dummyVars(paste0("~", catvar), data = trainDI$train), trainDI$train)
+      dvi_newdata <- predict(caret::dummyVars(paste0("~", catvar), data = trainDI$train), newdata)
       dvi_newdata[is.na(newdata[, catvar]), ] <- 0
       trainDI$train <- data.frame(trainDI$train, dvi_train)
       newdata <- data.frame(newdata, dvi_newdata)
     }
     newdata <- newdata[, -which(names(newdata) %in% catvars)]
-    trainDI$train <- trainDI$train[, -which(names(trainDI$train) %in% 
-                                              catvars)]
+    trainDI$train <- trainDI$train[, -which(names(trainDI$train) %in% catvars)]
   }
 
-  # Normalização dos dados
-  newdata <- scale(newdata, center = trainDI$scaleparam$`scaled:center`, 
-                   scale = trainDI$scaleparam$`scaled:scale`)
+  newdata <- scale(newdata, center = trainDI$scaleparam$`scaled:center`, scale = trainDI$scaleparam$`scaled:scale`)
+
   if (!inherits(trainDI$weight, "error")) {
     tmpnames <- names(newdata)
     newdata <- sapply(1:ncol(newdata), function(x) {
@@ -160,99 +159,158 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     })
     names(newdata) <- tmpnames
   }
-  train_scaled <- scale(trainDI$train, center = trainDI$scaleparam$`scaled:center`, 
-                        scale = trainDI$scaleparam$`scaled:scale`)
+
+  train_scaled <- scale(trainDI$train, center = trainDI$scaleparam$`scaled:center`, scale = trainDI$scaleparam$`scaled:scale`)
   train_scaled <- sapply(1:ncol(train_scaled), function(x) {
     train_scaled[, x] * unlist(trainDI$weight[x])
   })
 
-  # Remoção de linhas com NA
   okrows <- which(apply(newdata, 1, function(x) all(!is.na(x))))
   newdataCC <- newdata[okrows, , drop = F]
+
   if (method == "MD") {
     if (dim(train_scaled)[2] == 1) {
       S <- matrix(stats::var(train_scaled), 1, 1)
-      S_inv <- matrix(1/S)
+      newdataCC <- as.matrix(newdataCC, ncol = 1)
     } else {
       S <- stats::cov(train_scaled)
-      S_inv <- MASS::ginv(S)
     }
+    S_inv <- MASS::ginv(S)
   }
 
-  # Paralelização opcional com 'future'
-  if (parallel) {
-    if (missing(ncores)) {
-      ncores <- parallel::detectCores() - 1
-    }
-    future::plan(future::multisession, workers = ncores)
+  if (LPD == FALSE) {
     if (verbose) {
-      message("Parallel processing enabled with ", ncores, " cores.")
+      message("Computando DI dos novos dados...")
     }
+    mindist <- rep(NA, nrow(newdata))
+    mindist[okrows] <- .mindistfun(newdataCC, train_scaled, method, S_inv)
+    DI_out <- mindist/trainDI$trainDist_avrgmean
   } else {
-    future::plan(future::sequential)
-  }
-
-  # Calculo de DI e LPD
-  if (verbose) {
-    message("Computing DI and LPD (if requested)...")
-  }
-  
-  results <- future.apply::future_lapply(1:nrow(newdataCC), function(i) {
-    if (all(is.na(newdataCC[i, ]))) {
-      return(NA)
-    } else {
-      LPDs <- .knndistfun(newdataCC[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
-      DI <- mean(LPDs)
-      if (indices) {
-        LPD_index <- .knnindexfun(newdataCC[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
-        return(list(DI, LPD_index))
-      } else {
-        return(DI)
-      }
+    if (verbose) {
+      message("Computando DI e LPD dos novos dados...")
     }
-  })
-  
-  DI_out <- sapply(results, function(x) x[[1]])
-  if (indices) {
-    index_out <- do.call(rbind, lapply(results, function(x) x[[2]]))
-  }
 
-  # Transformação do resultado
-  if (inherits(out, "SpatRaster")) {
-    outvect <- rep(NA, nrow(out))
-    outvect[okrows] <- DI_out
-    terra::values(out) <- outvect
+    if (verbose) {
+      pb <- txtProgressBar(min = 0, max = nrow(newdataCC), style = 3)
+    }
+
+    DI_out <- rep(NA, nrow(newdata))
+    LPD_out <- rep(NA, nrow(newdata))
     if (indices) {
-      for (i in 1:ncol(index_out)) {
-        temp <- out
-        outvect[okrows] <- index_out[, i]
-        terra::values(temp) <- outvect
-        if (i == 1) 
-          out <- c(out, temp)
-        else out <- c(out, temp)
+      Indices_out <- matrix(NA, nrow = nrow(newdata), ncol = maxLPD)
+    }
+
+    if (parallel) {
+      if (verbose) {
+        message("Iniciando computação paralela com ", ncores, " núcleos...")
+      }
+      plan(multisession, workers = ncores)
+      
+      results <- future.apply::future_lapply(seq(nrow(newdataCC)), function(i) {
+        knnDist <- .knndistfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = maxLPD)
+        knnDI <- knnDist / trainDI$trainDist_avrgmean
+        knnDI <- c(knnDI)
+        di_out <- knnDI[1]
+        lpd_out <- sum(knnDI < trainDI$threshold)
+        knnIndex <- .knnindexfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = lpd_out)
+        list(di_out, lpd_out, knnIndex)
+      })
+      
+      plan(sequential)
+      
+    } else {
+      if (verbose) {
+        message("Computando sem paralelização...")
+      }
+      results <- lapply(seq(nrow(newdataCC)), function(i) {
+        knnDist <- .knndistfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = maxLPD)
+        knnDI <- knnDist / trainDI$trainDist_avrgmean
+        knnDI <- c(knnDI)
+        di_out <- knnDI[1]
+        lpd_out <- sum(knnDI < trainDI$threshold)
+        knnIndex <- .knnindexfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = lpd_out)
+        list(di_out, lpd_out, knnIndex)
+      })
+    }
+    
+    DI_out[okrows] <- sapply(results, `[[`, 1)
+    LPD_out[okrows] <- sapply(results, `[[`, 2)
+    if (indices) {
+      for (i in seq_along(okrows)) {
+        if (LPD_out[okrows[i]] > 0) {
+          Indices_out[okrows[i], 1:LPD_out[okrows[i]]] <- results[[i]][[3]]
+        }
       }
     }
-    names(out) <- if (indices) {
-      c("DI", paste0("DI_index", 1:ncol(index_out)))
-    } else "DI"
+    if (verbose) {
+      close(pb)
+    }
+    realMaxLPD <- max(LPD_out, na.rm = T)
+    if (maxLPD > realMaxLPD) {
+      if (inherits(maxLPD, c("numeric", "integer")) && verbose) {
+        message("Your specified maxLPD is bigger than the real maxLPD of you predictor data.")
+      }
+      if (verbose) {
+        message(paste("maxLPD is set to", realMaxLPD))
+      }
+      trainDI$maxLPD <- realMaxLPD
+    }
+    if (indices) {
+      Indices_out <- Indices_out[, 1:trainDI$maxLPD]
+    }
+  }
+
+  if (verbose) {
+    message("Computando AOA...")
+  }
+
+  if (inherits(out, "SpatRaster")) {
+    terra::values(out) <- DI_out
+    AOA <- out
+    terra::values(AOA) <- 1
+    AOA[out > trainDI$thres] <- 0
+    AOA <- terra::mask(AOA, out)
+    names(AOA) = "AOA"
+    if (LPD == TRUE) {
+      LPD <- out
+      terra::values(LPD) <- LPD_out
+      names(LPD) = "LPD"
+    }
     if (as_stars) {
       out <- stars::st_as_stars(out)
+      AOA <- stars::st_as_stars(AOA)
+      if (LPD == TRUE) {
+        LPD <- stars::st_as_stars(LPD)
+      }
     }
   } else {
-    if (indices) {
-      out <- data.frame(DI = DI_out, index_out)
-      names(out) <- c("DI", paste0("DI_index", 1:ncol(index_out)))
-    } else {
-      out <- DI_out
+    out <- DI_out
+    AOA <- rep(1, length(out))
+    AOA[out > trainDI$thres] <- 0
+    if (LPD == TRUE) {
+      LPD <- LPD_out
     }
   }
 
-  # Finalização e medição do tempo
-  end_time <- Sys.time()
-  elapsed_time <- end_time - start_time
-  if (verbose) {
-    message("Cálculo concluído em ", round(elapsed_time, 2), " segundos.")
+  result <- list(parameters = trainDI, DI = out, AOA = AOA)
+  if (LPD == TRUE) {
+    result$LPD <- LPD
+    if (indices) {
+      result$indices <- Indices_out
+    }
   }
 
-  return(out)
+  if (verbose) {
+    message("Finalizado!")
+  }
+
+  # Exibir o tempo de execução
+  end_time <- Sys.time()
+  if (verbose) {
+    message("Tempo de execução: ", round(difftime(end_time, start_time, units = "secs"), 2), " segundos")
+  }
+
+  class(result) <- "aoa"
+  return(result)
 }
+
