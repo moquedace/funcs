@@ -1,5 +1,3 @@
-
-
 aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = NA, 
                       variables = "all", CVtest = NULL, CVtrain = NULL, method = "L2", 
                       useWeight = TRUE, LPD = FALSE, maxLPD = 1, indices = FALSE, 
