@@ -17,7 +17,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   }
   
   required_packages <- c("future", "foreach", "doFuture",
-                         "doParallel", "dplyr", "caret", CAST)
+                         "doParallel", "dplyr", "caret", "CAST")
   install_and_load_packages(required_packages)
   
   
