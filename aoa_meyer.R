@@ -17,11 +17,8 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   required_packages <- c("future", "foreach", "doFuture", "doParallel", "dplyr", "caret", "CAST", "terra", "stars", "FNN", "MASS")
   install_and_load_packages(required_packages)
 
+  options(future.globals.maxSize = 2 * 1024^3) 
 
-
-    options(future.globals.maxSize = 2 * 1024^3) 
-
-    
   # Função para encontrar o índice do vizinho mais próximo
   .knnindexfun <- function (point, reference, method, S_inv = NULL, maxLPD = maxLPD) {
     if (method == "L2") {
@@ -91,10 +88,10 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
       } else if (!is.null(train)) {
         train[[1]]
       })) || maxLPD %% 1 != 0) {
-        stop("maxLPD cannot be bigger than the number of training samples. Define a number between 0 and 1 for a percentage of the number of training samples, or um número inteiro maior que 1 e menor que o número de amostras de treinamento.")
+        stop("maxLPD cannot be bigger than the number of training samples. Define a number between 0 and 1 for a percentage of the number of training samples, ou um número inteiro maior que 1 e menor que o número de amostras de treinamento.")
       }
     } else {
-      stop("maxLPD must be a number. Define a number between 0 and 1 for a percentage of the number of training samples, or um número inteiro maior que 1 e menor que o número de amostras de treinamento.")
+      stop("maxLPD must be a number. Define a number between 0 and 1 for a percentage of the number of training samples, ou um número inteiro maior que 1 e menor que o número de amostras de treinamento.")
     }
   }
 
@@ -201,7 +198,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   }
   
   results <- future.apply::future_lapply(1:nrow(newdata), function(i) {
-    if (is.na(newdata[i, ])) {
+    if (all(is.na(newdata[i, ]))) {
       return(NA)
     } else {
       LPDs <- .knndistfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
