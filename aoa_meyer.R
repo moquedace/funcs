@@ -151,12 +151,18 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     } else {
       S <- stats::cov(train_scaled)
     }
-    S_inv <- MASS::ginv(S)
+    detS <- try(det(S), silent = T)
+    if (inherits(detS, "try-error")) {
+      stop("Covariância não é invertível.")
+    }
+    S_inv <- try(solve(S), silent = T)
+    if (inherits(S_inv, "try-error")) {
+      stop("Covariância não é invertível.")
+    }
+  } else {
+    S_inv <- NULL
   }
   if (calc_LPD == FALSE) {
-    if (verbose) {
-      message("Computando DI dos novos dados...")
-    }
     mindist <- rep(NA, nrow(newdata))
     mindist[okrows] <- apply(.knndistfun(newdataCC, train_scaled, method, S_inv = S_inv), 1, min)
     if (inherits(out, "SpatRaster")) {
