@@ -17,7 +17,11 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   required_packages <- c("future", "foreach", "doFuture", "doParallel", "dplyr", "caret", "CAST", "terra", "stars", "FNN", "MASS")
   install_and_load_packages(required_packages)
 
-  options(future.globals.maxSize = 2 * 1024^3) 
+
+
+    options(future.globals.maxSize = 2 * 1024^3) 
+
+    
   # Função para encontrar o índice do vizinho mais próximo
   .knnindexfun <- function (point, reference, method, S_inv = NULL, maxLPD = maxLPD) {
     if (method == "L2") {
@@ -178,53 +182,42 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     }
   }
 
-  # Paralelização opcional
+  # Paralelização opcional com 'future'
   if (parallel) {
     if (missing(ncores)) {
       ncores <- parallel::detectCores() - 1
     }
-    cl <- parallel::makeCluster(ncores)
-    doParallel::registerDoParallel(cl)
-    parallel_flag <- TRUE
+    future::plan(future::multisession, workers = ncores)
+    if (verbose) {
+      message("Parallel processing enabled with ", ncores, " cores.")
+    }
   } else {
-    parallel_flag <- FALSE
+    future::plan(future::sequential)
   }
 
   # Calculo de DI e LPD
-  if (parallel_flag) {
-    if (verbose) {
-      message("Computing DI and LPD (if requested) in parallel...")
-    }
-    out_list <- foreach::foreach(i = seq_len(nrow(newdata)), .combine = "c", .packages = required_packages) %dopar% {
-      if (is.na(newdata[i, ])) {
-        return(NA)
+  if (verbose) {
+    message("Computing DI and LPD (if requested)...")
+  }
+  
+  results <- future.apply::future_lapply(1:nrow(newdata), function(i) {
+    if (is.na(newdata[i, ])) {
+      return(NA)
+    } else {
+      LPDs <- .knndistfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
+      DI <- mean(LPDs)
+      if (indices) {
+        LPD_index <- .knnindexfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
+        return(list(DI, LPD_index))
       } else {
-        LPDs <- .knndistfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
-        DI <- mean(LPDs)
-        if (indices) {
-          LPD_index <- .knnindexfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
-          return(list(DI, LPD_index))
-        } else {
-          return(DI)
-        }
+        return(DI)
       }
     }
-    DI_out <- sapply(out_list, function(x) x[[1]])
-    if (indices) {
-      index_out <- do.call(rbind, lapply(out_list, function(x) x[[2]]))
-    }
-  } else {
-    if (verbose) {
-      message("Computing DI and LPD (if requested)...")
-    }
-    LPDs <- matrix(NA, nrow(newdata), maxLPD)
-    LPDs[okrows, ] <- .knndistfun(newdataCC, train_scaled, method, S_inv, maxLPD)
-    DI_out <- rowMeans(LPDs[, 1:maxLPD], na.rm = TRUE)
-    if (indices) {
-      LPD_index <- matrix(NA, nrow(newdata), maxLPD)
-      LPD_index[okrows, ] <- .knnindexfun(newdataCC, train_scaled, method, S_inv, maxLPD)
-      index_out <- LPD_index
-    }
+  })
+  
+  DI_out <- sapply(results, function(x) x[[1]])
+  if (indices) {
+    index_out <- do.call(rbind, lapply(results, function(x) x[[2]]))
   }
 
   # Transformação do resultado
@@ -258,9 +251,6 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   }
 
   # Finalização e medição do tempo
-  if (parallel_flag) {
-    parallel::stopCluster(cl)
-  }
   end_time <- Sys.time()
   elapsed_time <- end_time - start_time
   if (verbose) {
