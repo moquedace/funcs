@@ -65,7 +65,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     newdata <- methods::as(newdata, "SpatRaster")
   }
 
-  if (LPD == TRUE) {
+  if (is.logical(LPD) && LPD) {
     if (is.numeric(maxLPD)) {
       if (maxLPD <= 0) {
         stop("maxLPD cannot be negative or equal to 0. Define a number between 0 and 1 for a percentage of the number of training samples, or a whole number larger than 1 and smaller than the number of training samples.")
@@ -107,7 +107,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
                        CVtest, CVtrain, method, useWeight, LPD, verbose)
   }
 
-  if (LPD == TRUE) {
+  if (is.logical(LPD) && LPD) {
     trainDI$maxLPD <- maxLPD
   }
 
@@ -178,7 +178,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     S_inv <- MASS::ginv(S)
   }
 
-  if (LPD == FALSE) {
+  if (is.logical(LPD) && !LPD) {
     if (verbose) {
       message("Computando DI dos novos dados...")
     }
@@ -271,7 +271,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     AOA[out > trainDI$thres] <- 0
     AOA <- terra::mask(AOA, out)
     names(AOA) = "AOA"
-    if (LPD == TRUE) {
+    if (is.logical(LPD) && LPD) {
       LPD <- out
       terra::values(LPD) <- LPD_out
       names(LPD) = "LPD"
@@ -279,7 +279,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     if (as_stars) {
       out <- stars::st_as_stars(out)
       AOA <- stars::st_as_stars(AOA)
-      if (LPD == TRUE) {
+      if (is.logical(LPD) && LPD) {
         LPD <- stars::st_as_stars(LPD)
       }
     }
@@ -287,13 +287,13 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     out <- DI_out
     AOA <- rep(1, length(out))
     AOA[out > trainDI$thres] <- 0
-    if (LPD == TRUE) {
+    if (is.logical(LPD) && LPD) {
       LPD <- LPD_out
     }
   }
 
   result <- list(parameters = trainDI, DI = out, AOA = AOA)
-  if (LPD == TRUE) {
+  if (is.logical(LPD) && LPD) {
     result$LPD <- LPD
     if (indices) {
       result$indices <- Indices_out
@@ -313,4 +313,3 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   class(result) <- "aoa"
   return(result)
 }
-
