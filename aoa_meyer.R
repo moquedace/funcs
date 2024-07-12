@@ -197,14 +197,14 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     message("Computing DI and LPD (if requested)...")
   }
   
-  results <- future.apply::future_lapply(1:nrow(newdata), function(i) {
-    if (all(is.na(newdata[i, ]))) {
+  results <- future.apply::future_lapply(1:nrow(newdataCC), function(i) {
+    if (all(is.na(newdataCC[i, ]))) {
       return(NA)
     } else {
-      LPDs <- .knndistfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
+      LPDs <- .knndistfun(newdataCC[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
       DI <- mean(LPDs)
       if (indices) {
-        LPD_index <- .knnindexfun(newdata[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
+        LPD_index <- .knnindexfun(newdataCC[i, , drop = FALSE], train_scaled, method, S_inv, maxLPD)
         return(list(DI, LPD_index))
       } else {
         return(DI)
