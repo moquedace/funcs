@@ -54,6 +54,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   if (verbose) {
     message("Verificando e preparando os dados...")
   }
+  
   newdata <- rast(newdata)
   as_stars <- FALSE
   leading_digit <- any(grepl("^{1}[0-9]", names(newdata)))
@@ -227,93 +228,93 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
       # Sem paralelização
       if (verbose) {
         message("Computando sem paralelização...")
-        results <- lapply(seq(nrow(newdataCC)), function(i) {
-          knnDist <- .knndistfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = maxLPD)
-          knnDI <- knnDist / trainDI$trainDist_avrgmean
-          knnDI <- c(knnDI)
-          di_out <- knnDI[1]
-          lpd_out <- sum(knnDI < trainDI$threshold)
-          knnIndex <- .knnindexfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = lpd_out)
-          list(di_out, lpd_out, knnIndex)
-        })
       }
-      
-      DI_out[okrows] <- sapply(results, `[[`, 1)
-      LPD_out[okrows] <- sapply(results, `[[`, 2)
-      if (indices) {
-        for (i in seq_along(okrows)) {
-          if (LPD_out[okrows[i]] > 0) {
-            Indices_out[okrows[i], 1:LPD_out[okrows[i]]] <- results[[i]][[3]]
-          }
+      results <- lapply(seq(nrow(newdataCC)), function(i) {
+        knnDist <- .knndistfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = maxLPD)
+        knnDI <- knnDist / trainDI$trainDist_avrgmean
+        knnDI <- c(knnDI)
+        di_out <- knnDI[1]
+        lpd_out <- sum(knnDI < trainDI$threshold)
+        knnIndex <- .knnindexfun(t(matrix(newdataCC[i, ])), train_scaled, method, S_inv, maxLPD = lpd_out)
+        list(di_out, lpd_out, knnIndex)
+      })
+    }
+    
+    DI_out[okrows] <- sapply(results, `[[`, 1)
+    LPD_out[okrows] <- sapply(results, `[[`, 2)
+    if (indices) {
+      for (i in seq_along(okrows)) {
+        if (LPD_out[okrows[i]] > 0) {
+          Indices_out[okrows[i], 1:LPD_out[okrows[i]]] <- results[[i]][[3]]
         }
+      }
+    }
+    if (verbose) {
+      close(pb)
+    }
+    realMaxLPD <- max(LPD_out, na.rm = T)
+    if (maxLPD > realMaxLPD) {
+      if (inherits(maxLPD, c("numeric", "integer")) && verbose) {
+        message("Your specified maxLPD is bigger than the real maxLPD of you predictor data.")
       }
       if (verbose) {
-        close(pb)
+        message(paste("maxLPD is set to", realMaxLPD))
       }
-      realMaxLPD <- max(LPD_out, na.rm = T)
-      if (maxLPD > realMaxLPD) {
-        if (inherits(maxLPD, c("numeric", "integer")) && verbose) {
-          message("Your specified maxLPD is bigger than the real maxLPD of you predictor data.")
-        }
-        if (verbose) {
-          message(paste("maxLPD is set to", realMaxLPD))
-        }
-        trainDI$maxLPD <- realMaxLPD
-      }
-      if (indices) {
-        Indices_out <- Indices_out[, 1:trainDI$maxLPD]
-      }
+      trainDI$maxLPD <- realMaxLPD
     }
-    if (verbose) {
-      message("Computing AOA...")
+    if (indices) {
+      Indices_out <- Indices_out[, 1:trainDI$maxLPD]
     }
-    if (inherits(out, "SpatRaster")) {
-      terra::values(out) <- DI_out
-      AOA <- out
-      terra::values(AOA) <- 1
-      AOA[out > trainDI$thres] <- 0
-      AOA <- terra::mask(AOA, out)
-      names(AOA) = "AOA"
-      if (calc_LPD == TRUE) {
-        LPD <- out
-        terra::values(LPD) <- LPD_out
-        names(LPD) = "LPD"
-      }
-      if (as_stars) {
-        out <- stars::st_as_stars(out)
-        AOA <- stars::st_as_stars(AOA)
-        if (calc_LPD == TRUE) {
-          LPD <- stars::st_as_stars(LPD)
-        }
-      }
-    } else {
-      out <- DI_out
-      AOA <- rep(1, length(out))
-      AOA[out > trainDI$thres] <- 0
-      if (calc_LPD == TRUE) {
-        LPD <- LPD_out
-      }
-    }
-    result <- list(parameters = trainDI, DI = out, AOA = AOA)
+  }
+  if (verbose) {
+    message("Computing AOA...")
+  }
+  if (inherits(out, "SpatRaster")) {
+    terra::values(out) <- DI_out
+    AOA <- out
+    terra::values(AOA) <- 1
+    AOA[out > trainDI$thres] <- 0
+    AOA <- terra::mask(AOA, out)
+    names(AOA) = "AOA"
     if (calc_LPD == TRUE) {
-      result$LPD <- LPD
-      if (indices) {
-        result$indices <- Indices_out
+      LPD <- out
+      terra::values(LPD) <- LPD_out
+      names(LPD) = "LPD"
+    }
+    if (as_stars) {
+      out <- stars::st_as_stars(out)
+      AOA <- stars::st_as_stars(AOA)
+      if (calc_LPD == TRUE) {
+        LPD <- stars::st_as_stars(LPD)
       }
     }
-    if (verbose) {
-      message("Finished!")
+  } else {
+    out <- DI_out
+    AOA <- rep(1, length(out))
+    AOA[out > trainDI$thres] <- 0
+    if (calc_LPD == TRUE) {
+      LPD <- LPD_out
     }
-    
-    
-    # Exibir o tempo de execução
-    end_time <- Sys.time()
-    if (verbose) {
-      message("Tempo de execução: ", round(difftime(end_time, start_time, units = "secs"), 2), " segundos")
+  }
+  result <- list(parameters = trainDI, DI = out, AOA = AOA)
+  if (calc_LPD == TRUE) {
+    result$LPD <- LPD
+    if (indices) {
+      result$indices <- Indices_out
     }
-    
-    
-    class(result) <- "aoa"
-    return(result)
+  }
+  if (verbose) {
+    message("Finished!")
   }
   
+  
+  # Exibir o tempo de execução
+  end_time <- Sys.time()
+  if (verbose) {
+    message("Tempo de execução: ", round(difftime(end_time, start_time, units = "secs"), 2), " segundos")
+  }
+  
+  
+  class(result) <- "aoa"
+  return(result)
+}
