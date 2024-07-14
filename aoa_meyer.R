@@ -20,7 +20,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
   install_and_load_packages(required_packages)
   
   
-  options(future.globals.maxSize = 20 * 1024^3)
+  options(future.globals.maxSize = 30 * 1024^3)
   .knnindexfun <- function (point, reference, method, S_inv = NULL, maxLPD = maxLPD) 
   {
     if (method == "L2") {
