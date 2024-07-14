@@ -191,10 +191,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
     if (verbose) {
       message("Computing DI and LPD of new data...")
     }
-    if (verbose) {
-      pb <- txtProgressBar(min = 0, max = nrow(newdataCC), 
-                           style = 3)
-    }
+    
     DI_out <- rep(NA, nrow(newdata))
     LPD_out <- rep(NA, nrow(newdata))
     if (indices) {
