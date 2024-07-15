@@ -246,9 +246,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL, weight = 
         }
       }
     }
-    if (verbose) {
-      close(pb)
-    }
+    
     realMaxLPD <- max(LPD_out, na.rm = T)
     if (maxLPD > realMaxLPD) {
       if (inherits(maxLPD, c("numeric", "integer")) && verbose) {
