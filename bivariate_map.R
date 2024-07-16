@@ -198,6 +198,7 @@ bivariate_map <- function(rasterx, rastery, colourmatrix = col.matrix,
   cat("Todos os argumentos foram verificados e são válidos.\n")
   
   # Inicializa a paralelização
+  options(future.globals.maxSize = 30 * 1024^3)
   future::plan(future::multicore, workers = ncores)
   cat("Paralelização inicializada com", ncores, "núcleos.\n")
   
