@@ -14,7 +14,7 @@ predict_qrf_raster <- function(object,
     if (length(to_install) > 0) {
       install.packages(to_install)
     }
-    invisible(lapply(packages, library, character.only = TRUE))
+    suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
   }
   
   required_packages <- c("randomForest", "data.table", "microbenchmark", "terra", "dplyr")
