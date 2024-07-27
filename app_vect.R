@@ -7,7 +7,7 @@ app_vect <- function(list_vect, name_col, fun, graph = TRUE, parallel = FALSE, w
     if (length(to_install) > 0) {
       install.packages(to_install)
     }
-    invisible(lapply(packages, library, character.only = TRUE))
+    suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
   }
   
   required_packages <- c("terra", "purrr", "future.apply")
