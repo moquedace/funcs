@@ -12,7 +12,7 @@ change_resolution <- function(rst,
     if (length(to_install) > 0) {
       install.packages(to_install)
     }
-    invisible(lapply(packages, library, character.only = TRUE))
+    suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
   }
   
   required_packages <- c("terra", "dplyr")
