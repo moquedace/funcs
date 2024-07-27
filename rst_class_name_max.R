@@ -12,7 +12,7 @@ rst_class_name_max <- function(rst) {
     print("installed packages")
   }
   
-  invisible(lapply(pkg, library, character.only = TRUE))
+  suppressPackageStartupMessages(lapply(pkg, library, character.only = TRUE))
   
   
   if (class(rst) %in% c("RasterStack", "RasterLayer")) {
