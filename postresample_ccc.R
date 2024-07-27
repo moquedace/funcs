@@ -12,7 +12,7 @@ pst_res_ccc <- function(data, lev = NULL, model = NULL) {
   }
   
   # Carrega o(s) pacote(s)
-  invisible(lapply(pkg, library, character.only = TRUE))
+  suppressPackageStartupMessages(lapply(pkg, library, character.only = TRUE))
   
   # Extrai as colunas de observações e previsões dos dados
   obs <- data[, "obs"]
