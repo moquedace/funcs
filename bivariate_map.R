@@ -11,7 +11,7 @@ colmat <- function(nbreaks = 3, breakstyle = "quantile",
     if (length(to_install) > 0) {
       install.packages(to_install)
     }
-    invisible(lapply(packages, library, character.only = TRUE))
+    suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
   }
   
   required_packages <- c("tidyverse", "classInt", "ggplot2")
