@@ -8,7 +8,7 @@ tile_raster <- function(rst, rows, cols, outdir, graph = TRUE,
     if (length(to_install) > 0) {
       install.packages(to_install)
     }
-    invisible(lapply(packages, library, character.only = TRUE))
+    suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
   }
   
   required_packages <- c("terra", "dplyr", "future.apply", "future", "furrr", "purrr")
