@@ -44,7 +44,7 @@ morphometry_saga <- function(dem,
   
   
   # Packages loading --------------------------------------------------------
-  invisible(lapply(pkg, library, character.only = TRUE))
+  suppressPackageStartupMessages(lapply(pkg, library, character.only = TRUE))
   
   
   # Parameterizing rsaga ----------------------------------------------------
