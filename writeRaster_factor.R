@@ -13,12 +13,10 @@ writeRaster_factor <- function(rst, cd_name, filename) {
   }
   
   # Packages loading
-  invisible(lapply(pkg, library, character.only = TRUE))
+  suppressPackageStartupMessages(lapply(pkg, library, character.only = TRUE))
   
   
-  
-  
-  
+   
   levels(rst) <- cd_name
   
   terra::writeRaster(rst,
