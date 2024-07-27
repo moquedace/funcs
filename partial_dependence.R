@@ -27,7 +27,7 @@ partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
     stop("classificação não é suportada")
   
   start_time <- Sys.time()
-  message("Iniciando a execução da função df_dep_parallel...")
+  message("Iniciando a execução da função partial_dependence...")
   
   df_dep_final <- data.frame()
   
