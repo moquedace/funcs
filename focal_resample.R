@@ -12,7 +12,7 @@ focal_resample <- function(file,
       message(paste("Package", pkg, "is not installed. Installing now..."))
       install.packages(pkg, dependencies = TRUE)
     }
-    library(pkg, character.only = TRUE)
+    suppressPackageStartupMessages(library(pkg, character.only = TRUE))
     message(paste("Package", pkg, "loaded successfully."))
   }
   
