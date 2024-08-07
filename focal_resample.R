@@ -3,6 +3,7 @@ focal_resample <- function(file,
                            nfocal,
                            output_dir,
                            subs = -0,
+                           apply_subst = TRUE,
                            method = "cubicspline",
                            resample_threads = TRUE) {
   # Function to check if a package is installed, if not, install it
@@ -48,13 +49,15 @@ focal_resample <- function(file,
   end_time <- Sys.time()
   message("Focal function applied in ", round(difftime(end_time, start_time, units = "secs"), 2), " seconds.")
   
-  message("Replacing NA values...")
-  # Measuring the time to replace NA values
-  start_time <- Sys.time()
-  r_focal <- subst(r_focal, from = NA, to = subs)
+  if (apply_subst) {
+    message("Replacing NA values...")
+    # Measuring the time to replace NA values
+    start_time <- Sys.time()
+    r_focal <- subst(r_focal, from = NA, to = subs)
+    end_time <- Sys.time()
+    message("NA values replaced in ", round(difftime(end_time, start_time, units = "secs"), 2), " seconds.")
+  }
   names(r_focal) <- nm_r
-  end_time <- Sys.time()
-  message("NA values replaced in ", round(difftime(end_time, start_time, units = "secs"), 2), " seconds.")
   
   message("Resampling the focal raster...")
   # Measuring the time to resample the raster
@@ -81,8 +84,7 @@ focal_resample <- function(file,
   message("Saving the resampled raster...")
   # Measuring the time to save the raster
   start_time <- Sys.time()
-  writeRaster(rst, overwrite = TRUE, filename = output_file,
-              gdal = "COMPRESS=LZW")
+  writeRaster(rst, overwrite = TRUE, filename = output_file, gdal = "COMPRESS=LZW")
   end_time <- Sys.time()
   message("Raster saved successfully in ", round(difftime(end_time, start_time, units = "secs"), 2), " seconds.")
   
