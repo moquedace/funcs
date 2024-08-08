@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 crop_mask_project <- function(rst,
                               vct,
                               method = "cubicspline",
@@ -13,7 +5,7 @@ crop_mask_project <- function(rst,
                               output_dir,
                               crs = c("EPSG:4326", "ESRI:54052")) {
   
-  # Function to install and load required packages
+  # Função para instalar e carregar pacotes necessários
   install_and_load_packages <- function(packages) {
     installed <- rownames(installed.packages())
     to_install <- packages[!packages %in% installed]
@@ -23,87 +15,92 @@ crop_mask_project <- function(rst,
     suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
   }
   
-  # Required packages
+  # Pacotes necessários
   required_packages <- c("terra", "dplyr", "janitor")
-  install_and_load_packages(required_packages)
+  invisible(install_and_load_packages(required_packages))
   
-  # Function to validate inputs
+  # Função para validar inputs
   validate_inputs <- function(rst, vct, output_dir, crs) {
     if (!file.exists(rst)) {
-      stop("The raster file does not exist: ", rst)
+      stop("O arquivo raster não existe: ", rst)
     }
-    if (!inherits(vct, "SpatVector")) {
-      stop("The 'vct' object must be of type 'SpatVector'")
+    if (!file.exists(vct)) {
+      stop("O arquivo vetor (vct) não existe: ", vct)
     }
     if (!is.character(crs) || length(crs) == 0) {
-      stop("The 'crs' parameter must be a non-empty character vector")
+      stop("O parâmetro 'crs' deve ser um vetor de strings não vazio")
     }
   }
   
   validate_inputs(rst, vct, output_dir, crs)
   
-  # Check and create output directory if necessary
+  # Verificar e criar diretório de saída se necessário
   if (!file.exists(output_dir)) {
-    message("Output directory does not exist. Creating: ", output_dir)
+    message("O diretório de saída não existe. Criando: ", output_dir)
     dir.create(output_dir, recursive = TRUE)
   }
   
-  # Load the raster
-  message("Loading the raster...")
+  # Carregar o raster
+  message("Carregando o raster...")
   r <- tryCatch({
     terra::rast(rst)
   }, error = function(e) {
-    stop("Error loading the raster: ", e$message)
+    stop("Erro ao carregar o raster: ", e$message)
   })
   
-  # CRS processing (reproject first)
+  # Carregar o vetor
+  message("Carregando o vetor...")
+  v <- tryCatch({
+    terra::vect(vct)
+  }, error = function(e) {
+    stop("Erro ao carregar o vetor: ", e$message)
+  })
+  
+  # Processamento de CRS (primeiro reprojetar)
   for (i in seq_along(crs)) {
-    message("Processing CRS: ", crs[i])
-    
-    
+    message("Processando CRS: ", crs[i])
     
     current_crs <- paste0(terra::crs(r, proj = FALSE, describe = TRUE, parse = FALSE)$authority, ":",
                           terra::crs(r, proj = FALSE, describe = TRUE, parse = FALSE)$code)
     
     if (current_crs != crs[i]) {
-      message("Reprojecting raster to ", crs[i])
-      
+      message("Reprojetando raster para ", crs[i])
       r_projected <- tryCatch({
         r %>% terra::project(y = crs[i], method = method, threads = threads)
       }, error = function(e) {
-        stop("Error reprojecting the raster: ", e$message)
+        stop("Erro ao reprojetar o raster: ", e$message)
       })
     } else {
       r_projected <- r
     }
     
-    # Crop and mask the reprojected raster
-    message("Applying crop and mask...")
+    # Aplicar crop e mask ao raster reprojetado
+    message("Aplicando recorte e máscara...")
     
-    vct <- project(vct, y = crs[i])
+    v <- project(v, y = crs[i])
     
     r_crop_mask <- tryCatch({
-      r_projected %>% terra::crop(vct, mask = TRUE, overwrite = TRUE)
+      r_projected %>% terra::crop(v, mask = TRUE, overwrite = TRUE)
     }, error = function(e) {
-      stop("Error cropping and masking the raster: ", e$message)
+      stop("Erro ao recortar e mascarar o raster: ", e$message)
     })
     
-    # Create output subdirectory for each CRS if necessary
+    # Criar subdiretório de saída para cada CRS, se necessário
     outdir_run <- file.path(output_dir, janitor::make_clean_names(crs[i]))
     if (!file.exists(outdir_run)) {
-      message("Creating subdirectory for CRS: ", outdir_run)
+      message("Criando subdiretório para CRS: ", outdir_run)
       dir.create(outdir_run, recursive = TRUE)
     }
     
-    # Save the reprojected and cropped raster
+    # Salvar o raster reprojetado e recortado
     outfile <- file.path(outdir_run, paste0(names(r_crop_mask), ".tif"))
     tryCatch({
       writeRaster(r_crop_mask, overwrite = TRUE, filename = outfile, gdal = "COMPRESS=LZW")
-      message("Raster saved to: ", outfile)
+      message("Raster salvo em: ", outfile)
     }, error = function(e) {
-      stop("Error saving the raster: ", e$message)
+      stop("Erro ao salvar o raster: ", e$message)
     })
   }
   
-  message("Processing complete.")
+  message("Processamento concluído.")
 }
