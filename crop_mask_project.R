@@ -16,7 +16,7 @@ crop_mask_project <- function(rst,
   }
   
   # Required packages
-  required_packages <- c("terra", "dplyr", "janitor")
+  required_packages <- c("terra", "dplyr", "janitor", "future", "future.apply")
   install_and_load_packages(required_packages)
   
   # Function to validate inputs
