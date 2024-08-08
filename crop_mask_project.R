@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 crop_mask_project <- function(rst,
                               vct,
                               method = "cubicspline",
@@ -16,7 +24,7 @@ crop_mask_project <- function(rst,
   }
   
   # Required packages
-  required_packages <- c("terra", "dplyr", "janitor", "future", "future.apply")
+  required_packages <- c("terra", "dplyr", "janitor")
   install_and_load_packages(required_packages)
   
   # Function to validate inputs
@@ -48,31 +56,37 @@ crop_mask_project <- function(rst,
     stop("Error loading the raster: ", e$message)
   })
   
-  # Crop and mask the raster
-  message("Starting crop and mask of the raster...")
-  r_crop <- tryCatch({
-    r %>% terra::crop(vct, mask = TRUE, overwrite = TRUE)
-  }, error = function(e) {
-    stop("Error cropping and masking the raster: ", e$message)
-  })
-  
-  # CRS processing
+  # CRS processing (reproject first)
   for (i in seq_along(crs)) {
     message("Processing CRS: ", crs[i])
     
-    current_crs <- paste0(terra::crs(r_crop, proj = FALSE, describe = TRUE, parse = FALSE)$authority, ":",
-                          terra::crs(r_crop, proj = FALSE, describe = TRUE, parse = FALSE)$code)
+    
+    
+    current_crs <- paste0(terra::crs(r, proj = FALSE, describe = TRUE, parse = FALSE)$authority, ":",
+                          terra::crs(r, proj = FALSE, describe = TRUE, parse = FALSE)$code)
     
     if (current_crs != crs[i]) {
       message("Reprojecting raster to ", crs[i])
-      r_crop_mask_project <- tryCatch({
-        r_crop %>% terra::project(y = crs[i], method = method, threads = threads)
+      
+      r_projected <- tryCatch({
+        r %>% terra::project(y = crs[i], method = method, threads = threads)
       }, error = function(e) {
         stop("Error reprojecting the raster: ", e$message)
       })
     } else {
-      r_crop_mask_project <- r_crop
+      r_projected <- r
     }
+    
+    # Crop and mask the reprojected raster
+    message("Applying crop and mask...")
+    
+    vct <- project(vct, y = crs[i])
+    
+    r_crop_mask <- tryCatch({
+      r_projected %>% terra::crop(vct, mask = TRUE, overwrite = TRUE)
+    }, error = function(e) {
+      stop("Error cropping and masking the raster: ", e$message)
+    })
     
     # Create output subdirectory for each CRS if necessary
     outdir_run <- file.path(output_dir, janitor::make_clean_names(crs[i]))
@@ -81,10 +95,10 @@ crop_mask_project <- function(rst,
       dir.create(outdir_run, recursive = TRUE)
     }
     
-    # Save the reprojected raster
-    outfile <- file.path(outdir_run, paste0(names(r_crop_mask_project), ".tif"))
+    # Save the reprojected and cropped raster
+    outfile <- file.path(outdir_run, paste0(names(r_crop_mask), ".tif"))
     tryCatch({
-      writeRaster(r_crop_mask_project, overwrite = TRUE, filename = outfile, gdal = "COMPRESS=LZW")
+      writeRaster(r_crop_mask, overwrite = TRUE, filename = outfile, gdal = "COMPRESS=LZW")
       message("Raster saved to: ", outfile)
     }, error = function(e) {
       stop("Error saving the raster: ", e$message)
