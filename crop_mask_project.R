@@ -80,7 +80,7 @@ crop_mask_project <- function(rst,
     v <- project(v, y = crs[i])
     
     r_crop_mask <- tryCatch({
-      r_projected %>% terra::crop(v, mask = TRUE, overwrite = TRUE)
+      r_projected %>% terra::crop(v, overwrite = TRUE) %>% terra::mask(v)
     }, error = function(e) {
       stop("Erro ao recortar e mascarar o raster: ", e$message)
     })
