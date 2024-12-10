@@ -46,6 +46,8 @@ rst_class_name_max <- function(rst, custom_crs = NULL, plot_map = TRUE) {
   soils_name <- sort(names(rst))
   df_code_clas <- data.frame(code_classe_dom = seq_along(soils_name),
                              classe_dom = soils_name)
+
+  gc()
   
   message("Convertendo raster para DataFrame e processando dados...")
   df <- as.data.frame(rst, xy = TRUE, na.rm = TRUE)
@@ -53,6 +55,8 @@ rst_class_name_max <- function(rst, custom_crs = NULL, plot_map = TRUE) {
     select(-x, -y) %>%
     mutate(classe_dom = names(.)[apply(., 1, which.max)]) %>%
     select(classe_dom)
+
+  gc()
   
   message("Criando raster com a classe dominante...")
   r_dom <- df %>%
@@ -61,6 +65,8 @@ rst_class_name_max <- function(rst, custom_crs = NULL, plot_map = TRUE) {
     left_join(df_code_clas, by = "classe_dom") %>%
     select(x, y, code_classe_dom) %>%
     rast(type = "xyz", crs = crs_str)
+
+  gc()
   
   levels(r_dom) <- list(df_code_clas)
   
