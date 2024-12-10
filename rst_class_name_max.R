@@ -1,77 +1,78 @@
-rst_class_name_max <- function(rst) {
+
+rst_class_name_max <- function(rst, custom_crs = NULL, plot_map = TRUE) {
+  start_time <- Sys.time()
+  message("Iniciando a função rst_class_name_max...")
   
+  required_packages <- c("dplyr", "terra", "stringr")
+  missing_packages <- required_packages[!required_packages %in% installed.packages()[, "Package"]]
   
-  
-  pkg <- c("dplyr", "terra", "stringr")
-  
-  
-  installed_packages <- pkg %in% rownames(installed.packages())
-  if (any(installed_packages == FALSE)) {
-    print(paste("installing package", pkg[!installed_packages]))
-    install.packages(pkg[!installed_packages])
-    print("installed packages")
+  if (length(missing_packages) > 0) {
+    message("Instalando pacotes ausentes: ", paste(missing_packages, collapse = ", "))
+    install.packages(missing_packages)
+    message("Pacotes instalados com sucesso.")
   }
   
-  suppressPackageStartupMessages(lapply(pkg, library, character.only = TRUE))
+  message("Carregando pacotes necessários...")
+  lapply(required_packages, library, character.only = TRUE)
   
-  
-  if (class(rst) %in% c("RasterStack", "RasterLayer")) {
+  message("Verificando o formato do raster...")
+  if (inherits(rst, c("RasterStack", "RasterLayer"))) {
     rst <- rast(rst)
+    message("Raster convertido para SpatRaster.")
+  } else if (!inherits(rst, "SpatRaster")) {
+    stop("Erro: o arquivo deve estar no formato RasterStack, RasterLayer ou SpatRaster.")
+  } else {
+    message("Raster já está no formato SpatRaster.")
   }
-  else {
-    if (class(rst) != "SpatRaster") {
-      stop("Error : file must be in RasterStack or SpatRaster format")
+  
+  message("Configurando o sistema de referência de coordenadas (CRS)...")
+  crs_str <- if (is.null(custom_crs)) {
+    crs_info <- crs(rst, describe = TRUE)
+    if (!is.null(crs_info$authority) && !is.null(crs_info$code)) {
+      paste0(crs_info$authority, ":", crs_info$code)
+    } else if (!is.null(crs_info$proj4)) {
+      crs_info$proj4
+    } else {
+      warning("Não foi possível obter o CRS do raster. Usando CRS padrão WGS84.")
+      "EPSG:4326"
     }
+  } else {
+    custom_crs
+  }
+  crs(rst) <- crs_str
+  message("CRS configurado como: ", crs_str)
+  
+  message("Obtendo nomes das camadas do raster...")
+  soils_name <- sort(names(rst))
+  df_code_clas <- data.frame(code_classe_dom = seq_along(soils_name),
+                             classe_dom = soils_name)
+  
+  message("Convertendo raster para DataFrame e processando dados...")
+  df <- as.data.frame(rst, xy = TRUE, na.rm = TRUE)
+  classes_name <- df %>%
+    select(-x, -y) %>%
+    mutate(classe_dom = names(.)[apply(., 1, which.max)]) %>%
+    select(classe_dom)
+  
+  message("Criando raster com a classe dominante...")
+  r_dom <- df %>%
+    select(x, y) %>%
+    cbind(classes_name) %>%
+    left_join(df_code_clas, by = "classe_dom") %>%
+    select(x, y, code_classe_dom) %>%
+    rast(type = "xyz", crs = crs_str)
+  
+  levels(r_dom) <- list(df_code_clas)
+  
+  if (plot_map) {
+    message("Plotando o raster de classe dominante...")
+    plot(r_dom, main = "Classe Dominante do Raster")
   }
   
-  n_layers <- nlyr(rst) + 2
+  end_time <- Sys.time()
+  elapsed_time <- end_time - start_time
+  message("Função executada com sucesso em ", round(elapsed_time, 2), " ",
+          units(elapsed_time), "...")
   
-  
-  df <- as.data.frame(rst, xy = T, na.rm = T) %>% 
-    mutate(
-      class_dom = as.factor(colnames(.)[max.col(.[,3:n_layers]) + 2])) %>% 
-    mutate(code = unclass(class_dom)) %>% 
-    dplyr::select(x, y, class_dom, code)
-  
-  
-  g_class <- df %>% 
-    dplyr::select(-x, -y) %>% 
-    group_by(class_dom) %>% 
-    distinct(class_dom, .keep_all = T) %>% 
-    arrange(code) %>% 
-    relocate(code) %>% 
-    ungroup() %>% as.data.frame()
-  
-  
-  r_class <- df %>% 
-    dplyr::select(-class_dom) %>% 
-    rast(type = "xyz",
-         crs = paste0(crs(rst, describe = T)$authority,
-                      ":", crs(rst, describe = T)$code), digits = 1) 
-  
-  
-  levels(r_class) <- g_class
-  
-  
-  return(r_class)
-  
+  return(r_dom)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
