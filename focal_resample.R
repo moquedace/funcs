@@ -1,6 +1,7 @@
 focal_resample <- function(file,
                            r_base,
                            nfocal,
+                           fun_apply = "mean",
                            output_dir,
                            subs = -0,
                            apply_subst = TRUE,
@@ -43,7 +44,7 @@ focal_resample <- function(file,
   # Measuring the time to apply the focal function
   start_time <- Sys.time()
   r_focal <- focal(x = rrast, w = nfocal,
-                   fun = "mean",
+                   fun = fun_apply,
                    na.policy = "only",
                    na.rm = TRUE)
   end_time <- Sys.time()
