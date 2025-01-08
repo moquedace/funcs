@@ -130,7 +130,10 @@ pred_writer_raster_prob_raw <- function(model = NULL,
   }
   
   end_time <- Sys.time()
-  message("Função concluída. Tempo total de execução: ", round(end_time - start_time, 2), " segundos.")
+  duration <- end_time - start_time
+  message("Função concluída. Tempo total de execução: ",
+          round(duration, 2), " ",
+          units(duration), ".")
   
   return(file_paths)
 }
