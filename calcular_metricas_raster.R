@@ -43,7 +43,7 @@ calcular_metricas_raster <- function(df_bloco) {
   }
   
   # Calcula moda e frequência da moda
-  df_bloco_moda_frequencia2 <- df_bloco %>%
+  df_bloco_moda_frequencia <- df_bloco %>%
     mutate(across(-c(x, y), as.character)) %>%
     rowwise() %>%
     mutate(
