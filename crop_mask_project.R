@@ -1,6 +1,6 @@
 crop_mask_project <- function(rst,
                               vct,
-                              resolution = NULL,
+                              resolution = 500,
                               method = "cubicspline",
                               threads = TRUE,
                               output_dir,
@@ -96,7 +96,9 @@ crop_mask_project <- function(rst,
     })
     
     # Create output subdirectory for each CRS, if necessary
-    outdir_run <- file.path(output_dir, janitor::make_clean_names(crs[i]))
+    outdir_run <- file.path(output_dir,
+                            janitor::make_clean_names(crs[i]),
+                            paste0("resolution_", resolution, "m"))
     if (!file.exists(outdir_run)) {
       message("Creating subdirectory for CRS: ", outdir_run)
       dir.create(outdir_run, recursive = TRUE)
