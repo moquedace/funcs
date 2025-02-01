@@ -4,7 +4,8 @@ crop_mask_project <- function(rst,
                               method = "cubicspline",
                               threads = TRUE,
                               output_dir,
-                              crs = c("EPSG:4326", "ESRI:54052")) {
+                              crs = c("EPSG:4326", "ESRI:54052"),
+                              round = NULL) {
   
   # Function to install and load required packages
   install_and_load_packages <- function(packages) {
@@ -21,7 +22,7 @@ crop_mask_project <- function(rst,
   invisible(install_and_load_packages(required_packages))
   
   # Function to validate inputs
-  validate_inputs <- function(rst, vct, output_dir, crs, resolution) {
+  validate_inputs <- function(rst, vct, output_dir, crs, resolution, round) {
     if (!file.exists(rst)) {
       stop("The raster file does not exist: ", rst)
     }
@@ -36,10 +37,15 @@ crop_mask_project <- function(rst,
         stop("The 'resolution' parameter must be a positive numeric value.")
       }
     }
+    if (!is.null(round)) {
+      if (!is.numeric(round) || length(round) != 1 || round < 0) {
+        stop("The 'round' parameter must be a non-negative numeric value.")
+      }
+    }
   }
   
   # Validate inputs
-  validate_inputs(rst, vct, output_dir, crs, resolution)
+  validate_inputs(rst, vct, output_dir, crs, resolution, round)
   
   # Check and create output directory if necessary
   if (!file.exists(output_dir)) {
@@ -94,6 +100,12 @@ crop_mask_project <- function(rst,
     }, error = function(e) {
       stop("Error cropping and masking the raster: ", e$message)
     })
+    
+    # Apply rounding if specified
+    if (!is.null(round)) {
+      message("Applying rounding with digits = ", round)
+      r_crop_mask <- terra::round(r_crop_mask, digits = round)
+    }
     
     # Create output subdirectory for each CRS, if necessary
     outdir_run <- file.path(output_dir,
