@@ -114,7 +114,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
         newdata[[which(is.factor(newdata))]]
       )
     }
-    newdata <- terra::as.data.frame(newdata, na.rm = F) %>% 
+    newdata <- terra::as.data.frame(newdata, na.rm = T) %>% 
       as.data.table()
   }
   
