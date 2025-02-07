@@ -114,8 +114,18 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
         newdata[[which(is.factor(newdata))]]
       )
     }
-    newdata <- terra::as.data.frame(newdata, na.rm = T) %>% 
-      as.data.table()
+     gc()
+    raster_list <- lapply(1:nlyr(newdata), function(i) {
+      df <- terra::as.data.frame(newdata[[i]], na.rm = T)
+      df <- as.data.table(df)  # Converte para data.table
+      gc()  # Libera memória
+      return(df)
+    })
+    
+    newdata <- do.call(cbind, raster_list)  # Combina todas as tabelas
+    
+    
+    gc() 
   }
   
   newdata <- newdata[, na.omit(match(trainDI$variables, names(newdata))),
