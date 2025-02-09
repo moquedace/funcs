@@ -19,7 +19,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
                          "terra", "FNN", "MASS")
   install_and_load_packages(required_packages)
   
-  options(future.globals.maxSize = 300 * 1024^3)
+  options(future.globals.maxSize = 30 * 1024^3)
   
   .knnindexfun <- function(point, reference, method, S_inv = NULL,
                            maxLPD = maxLPD) {
@@ -74,17 +74,17 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
     if (maxLPD <= 1) {
       maxLPD <- round(
         maxLPD * if (inherits(model, "train")) length(model$trainingData[[1]]
-                                                      ) else length(train[[1]]))
+        ) else length(train[[1]]))
       if (maxLPD <= 1) stop(
         "The percentage you provided for maxLPD is too small."
-        )
+      )
     }
     if (maxLPD > if (
       inherits(model, "train")) length(model$trainingData[[1]]
-                                       ) else length(train[[1]])) {
+      ) else length(train[[1]])) {
       stop(
         "maxLPD cannot be bigger than the number of training samples."
-        )
+      )
     }
   }
   
@@ -114,9 +114,9 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
         newdata[[which(is.factor(newdata))]]
       )
     }
-     gc()
+    gc()
     raster_list <- lapply(1:nlyr(newdata), function(i) {
-      df <- terra::as.data.frame(newdata[[i]], na.rm = T)
+      df <- terra::as.data.frame(newdata[[i]], na.rm = F)
       df <- as.data.table(df)  # Converte para data.table
       gc()  # Libera memória
       return(df)
@@ -145,7 +145,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
                          data = trainDI$train), trainDI$train)
       dvi_newdata <- predict(
         caret::dummyVars(paste0("~", catvar), data = trainDI$train), newdata
-        )
+      )
       dvi_newdata[is.na(newdata[[catvar]]), ] <- 0
       
       trainDI$train <- cbind(trainDI$train, dvi_train)
@@ -166,8 +166,8 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
   
   train_scaled <- scale(
     trainDI$train, center = trainDI$scaleparam$`scaled:center`, 
-                        scale = trainDI$scaleparam$`scaled:scale`
-    )
+    scale = trainDI$scaleparam$`scaled:scale`
+  )
   train_scaled <- sapply(1:ncol(train_scaled), function(x) train_scaled[, x] * unlist(trainDI$weight[x]))
   
   okrows <- which(apply(newdata, 1, function(x) all(!is.na(x))))
