@@ -19,7 +19,7 @@ aoa_meyer <- function(newdata, model = NA, trainDI = NA, train = NULL,
                          "terra", "FNN", "MASS")
   install_and_load_packages(required_packages)
   
-  options(future.globals.maxSize = 30 * 1024^3)
+  options(future.globals.maxSize = 300 * 1024^3)
   
   .knnindexfun <- function(point, reference, method, S_inv = NULL,
                            maxLPD = maxLPD) {
