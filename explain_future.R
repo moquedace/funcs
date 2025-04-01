@@ -1,4 +1,3 @@
-
 explain_future <- function (
     object, feature_names = NULL, X = NULL, nsim = 1, pred_wrapper = NULL,
     newdata = NULL, adjust = FALSE, baseline = NULL, shap_only = TRUE,
@@ -79,34 +78,51 @@ explain_future <- function (
     
     
     pred_in_parallel_blocks <- function(
-    object, newdata, n_blocks = n_blocks, workers = cores
+    object, newdata, n_blocks = n_blocks, workers = cores,
+    pred_wrapper, pkg = pkg
     ) {
-      plan(multisession, workers = workers)
+      future::plan(future::multisession, workers = workers)
       
       n_rows <- nrow(newdata)
-      blocks <- split(
-        1:n_rows, cut(1:n_rows, breaks = n_blocks, labels = FALSE)
-      )
+      blocks <- split(seq_len(n_rows), cut(seq_len(n_rows), breaks = n_blocks, labels = FALSE))
       
-      results <- future_lapply(blocks, function(idx) {
-        gc()
-        
-        source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
-        suppressPackageStartupMessages(suppressMessages(
-          invisible(capture.output(install_load_pkg(pkg)))
-        ))
-        
-        block_data <- newdata[idx, , drop = FALSE]
-        pred_wrapper(object, newdata = block_data)
-      })
+      results <- future.apply::future_lapply(
+        blocks,
+        FUN = function(idx) {
+          gc()
+          source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+          suppressPackageStartupMessages(suppressMessages(
+            invisible(capture.output(install_load_pkg(pkg)))
+          ))
+          block_data <- newdata[idx, , drop = FALSE]
+          pred_wrapper(object, newdata = block_data)
+        },
+        future.globals = list(
+          object = object,
+          newdata = newdata,
+          pred_wrapper = pred_wrapper,
+          pkg = pkg,
+          n_blocks = n_blocks,
+          cores = cores
+        ),
+        future.packages = pkg
+      )
       
       do.call(c, results)
     }
     
-    fx <- pred_in_parallel_blocks(object, newdata, n_blocks = n_blocks)
     
-    gc()
     
+    fx <- pred_in_parallel_blocks(
+      object = model_fit,
+      newdata = shap_input,
+      n_blocks = n_blocks,
+      workers = cores,
+      pred_wrapper = pred_fun,
+      pkg = pkg
+    )
+    
+   
     
     # fx <- pred_wrapper(object, newdata = newdata)
     fnull <- if (is.null(baseline)) mean(pred_wrapper(object, newdata = X)) else baseline
@@ -209,4 +225,3 @@ explain_future <- function (
     return(phis)
   }
 }
-
