@@ -1,7 +1,8 @@
+
 explain_future <- function (
     object, feature_names = NULL, X = NULL, nsim = 1, pred_wrapper = NULL,
     newdata = NULL, adjust = FALSE, baseline = NULL, shap_only = TRUE,
-    parallel = FALSE, cores = NULL, ...
+    parallel = FALSE, cores = NULL, n_blocks = 10, ...
 ) 
 {
   cat("🔧 Installing and loading required packages...\n")
@@ -68,15 +69,46 @@ explain_future <- function (
     if (is.null(cores)) cores <- pmax(1, future::availableCores() - 1)
     cat(paste0("🧵 Using ", cores, " cores...\n"))
     future::plan(future::multisession, workers = cores)
-      options(future.globals.maxSize = 300 * 1024^3)
+    options(future.globals.maxSize = 300 * 1024^3)
     on.exit(future::plan(future::sequential), add = TRUE)
   }
   
   if (isTRUE(adjust)) {
     if (nsim < 2) stop("❌ Argument `nsim` must be > 1 when `adjust = TRUE`.", call. = FALSE)
-    cat("📐 Computing SHAP values with adjustment...\n")
+    cat("📐 Computing SHAP values with adjustment...\n")   
     
-    fx <- pred_wrapper(object, newdata = newdata)
+    
+    pred_in_parallel_blocks <- function(
+    object, newdata, n_blocks = n_blocks, workers = cores
+    ) {
+      plan(multisession, workers = workers)
+      
+      n_rows <- nrow(newdata)
+      blocks <- split(
+        1:n_rows, cut(1:n_rows, breaks = n_blocks, labels = FALSE)
+      )
+      
+      results <- future_lapply(blocks, function(idx) {
+        gc()
+        
+        source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+        suppressPackageStartupMessages(suppressMessages(
+          invisible(capture.output(install_load_pkg(pkg)))
+        ))
+        
+        block_data <- newdata[idx, , drop = FALSE]
+        pred_wrapper(object, newdata = block_data)
+      })
+      
+      do.call(c, results)
+    }
+    
+    fx <- pred_in_parallel_blocks(object, newdata, n_blocks = n_blocks)
+    
+    gc()
+    
+    
+    # fx <- pred_wrapper(object, newdata = newdata)
     fnull <- if (is.null(baseline)) mean(pred_wrapper(object, newdata = X)) else baseline
     
     compute_stats <- function(feature) {
@@ -177,3 +209,4 @@ explain_future <- function (
     return(phis)
   }
 }
+
