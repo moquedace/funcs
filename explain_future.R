@@ -68,6 +68,7 @@ explain_future <- function (
     if (is.null(cores)) cores <- pmax(1, future::availableCores() - 1)
     cat(paste0("🧵 Using ", cores, " cores...\n"))
     future::plan(future::multisession, workers = cores)
+      options(future.globals.maxSize = 300 * 1024^3)
     on.exit(future::plan(future::sequential), add = TRUE)
   }
   
