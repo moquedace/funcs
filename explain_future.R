@@ -77,6 +77,7 @@ explain_future <- function (
     cat("📐 Computing SHAP values with adjustment...\n")   
     
     
+   
     pred_in_parallel_blocks <- function(
     object, newdata, n_blocks = n_blocks, workers = cores,
     pred_wrapper, pkg = pkg
@@ -112,7 +113,6 @@ explain_future <- function (
     }
     
     
-    
     fx <- pred_in_parallel_blocks(
       object = model_fit,
       newdata = shap_input,
@@ -122,10 +122,36 @@ explain_future <- function (
       pkg = pkg
     )
     
-   
+    gc()
     
     # fx <- pred_wrapper(object, newdata = newdata)
-    fnull <- if (is.null(baseline)) mean(pred_wrapper(object, newdata = X)) else baseline
+    
+    
+    fnull <- if (is.null(baseline)) mean(fx) else baseline
+    
+    
+    pred_wrapper_block <- function(object, newdata) {
+      n_rows <- nrow(newdata)
+      blocks <- split(seq_len(n_rows), cut(seq_len(n_rows), breaks = n_blocks, labels = FALSE))
+      
+      out <- vector("list", length(blocks))
+      
+      for (i in seq_along(blocks)) {
+        gc()
+        idx <- blocks[[i]]
+        block_data <- newdata[idx, , drop = FALSE]
+        
+        source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+        suppressPackageStartupMessages(suppressMessages(
+          invisible(capture.output(install_load_pkg(pkg)))
+        ))
+        
+        out[[i]] <- pred_fun(object, newdata = block_data)
+      }
+      
+      do.call(c, out)
+    }
+    
     
     compute_stats <- function(feature) {
       source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
@@ -138,7 +164,7 @@ explain_future <- function (
           object = object,
           feature_names = feature,
           X = X,
-          pred_wrapper = pred_wrapper, 
+          pred_wrapper = pred_wrapper_block,  
           newdata = newdata
         )
       }, simplify = "matrix")
@@ -148,12 +174,18 @@ explain_future <- function (
       cbind(means, vars)
     }
     
+   
     cat("🚀 Launching computation...\n")
     results <- if (parallel) {
-      future.apply::future_lapply(feature_names, compute_stats, future.seed = TRUE, ...)
+      future.apply::future_lapply(
+        feature_names, compute_stats, future.seed = TRUE
+      )
     } else {
       lapply(feature_names, compute_stats, ...)
     }
+    
+   
+    future::plan(future::sequential)
     
     cat("🧮 Aggregating results and applying adjustment...\n")
     phis.stats <- abind::abind(results, along = 3)
