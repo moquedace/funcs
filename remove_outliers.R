@@ -1,12 +1,12 @@
 remove_outliers <- function(df, columns, group_info = NULL, multiplier = 1.5, verbose = FALSE) {
   
-    source(
+  source(
     "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
   )
   
   pkg <- c(
     "dplyr"
-           )
+  )
   
   install_load_pkg(pkg)
   
@@ -19,10 +19,14 @@ remove_outliers <- function(df, columns, group_info = NULL, multiplier = 1.5, ve
     stop("error: the following columns do not exist in the dataframe: ", paste(invalid_columns, collapse = ", "))
   }
   
-  non_numeric_columns <- columns[!sapply(df[columns], is.numeric)]
+  non_numeric_columns <- purrr::keep(columns, ~ {
+    col <- df[[.x]]
+    !(is.numeric(col) || is.integer(col))
+  })
   if (length(non_numeric_columns) > 0) {
     stop("error: the following columns are not numeric: ", paste(non_numeric_columns, collapse = ", "))
   }
+  
   
   group_name <- if (!is.null(group_info)) {
     paste(names(group_info), "=", as.character(group_info), collapse = " | ")
