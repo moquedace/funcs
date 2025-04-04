@@ -175,14 +175,29 @@ explain_future <- function (
     }
     
    
-    cat("🚀 Launching computation...\n")
-    results <- if (parallel) {
-      future.apply::future_lapply(
-        feature_names, compute_stats, future.seed = TRUE
-      )
-    } else {
-      lapply(feature_names, compute_stats, ...)
-    }
+    cat("🚀 Launching computation...\n")    
+results <- if (parallel) {
+  future.apply::future_lapply(
+    feature_names,
+    compute_stats,
+    future.seed = TRUE,
+    future.globals = list(
+      compute_stats = compute_stats,
+      object = object,
+      X = X,
+      pred_wrapper_block = pred_wrapper_block,
+      newdata = newdata,
+      nsim = nsim,
+      pkg = pkg,
+      install_load_pkg = install_load_pkg,
+      n_blocks = n_blocks,
+      pred_fun = pred_fun
+    ),
+    future.packages = pkg
+  )
+} else {
+  lapply(feature_names, compute_stats, ...)
+}
     
    
     future::plan(future::sequential)
