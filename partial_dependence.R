@@ -2,21 +2,13 @@ partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
                                lci = 0.25, uci = 0.75, delta = FALSE,
                                ncores = detectCores() - 1) {
   
-  install_and_load_packages <- function(packages) {
-    installed <- rownames(installed.packages())
-    to_install <- packages[!packages %in% installed]
-    if (length(to_install) > 0) {
-      install.packages(to_install)
-    }
-    suppressPackageStartupMessages(lapply(packages, library,
-                                          character.only = TRUE))
-  }
+  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
   
-  required_packages <- c("dplyr", "caret", "rfUtilities", "future.apply",
+  pkg <- c("dplyr", "caret", "rfUtilities", "future.apply",
                          "quantregForest", "tidyr", "stringr", "future")
+  install_load_pkg(pkg)
   
-  install_and_load_packages(required_packages)
-  
+   
   m <- model$finalModel
   x <- model$trainingData %>% select(-.outcome)
   yname <- model[["terms"]][[2]]
@@ -56,10 +48,11 @@ partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
     
     results <- future_lapply(1:length(temp), function(i) {
       
-      required_packages <- c("dplyr", "caret", "rfUtilities", "future.apply",
-                             "quantregForest", "tidyr", "stringr", "future")
-      suppressPackageStartupMessages(sapply(required_packages, require,
-                                            character.only = TRUE))
+      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+  
+  pkg <- c("dplyr", "caret", "rfUtilities", "future.apply",
+                         "quantregForest", "tidyr", "stringr", "future")
+  install_load_pkg(pkg)
       
       
       x_temp <- x
@@ -98,7 +91,9 @@ partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
   }
   
   end_time <- Sys.time()
-  message(paste("Execução finalizada. Tempo total:", round(difftime(end_time, start_time, units = "secs"), 2), "segundos."))
+duration <- end_time - start_time
+message(paste("Execução finalizada. Tempo total:", round(duration, 2), units(duration)))
+
   
   return(df_dep_final)
   
