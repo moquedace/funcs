@@ -1,8 +1,10 @@
-rst_class_name_max <- function(
-    rst, custom_crs = NULL, plot_map = TRUE
-    ) {
+rst_class_by_value <- function(
+    rst, custom_crs = NULL, plot_map = TRUE,
+    use_abs = TRUE, which_func = "max"
+) {
+  
   start_time <- Sys.time()
-  message("Starting function rst_class_name_max...")
+  message("Starting function rst_class_by_value...")
   
   source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
   
@@ -13,7 +15,7 @@ rst_class_name_max <- function(
   message("Loading required packages...")
   
   install_load_pkg(pkg)
- 
+  
   message("Checking raster format...")
   if (inherits(rst, c("RasterStack", "RasterLayer"))) {
     rst <- rast(rst)
@@ -50,9 +52,14 @@ rst_class_name_max <- function(
   
   message("Converting raster to DataFrame and processing data...")
   df <- as.data.frame(rst, xy = TRUE, na.rm = TRUE)
-  classes_name <- df %>%
-    select(-x, -y) %>%
-    mutate(classe_dom = names(.)[apply(abs(.), 1, which.max)]) %>%  
+  
+  which_func <- match.arg(which_func)
+  process_df <- df %>% select(-x, -y)
+  if (use_abs) process_df <- abs(process_df)
+  index_func <- if (which_func == "max") which.max else which.min
+  
+  classes_name <- process_df %>% 
+    mutate(classe_dom = names(.)[apply(., 1, index_func)]) %>%
     select(classe_dom)
   
   gc()
