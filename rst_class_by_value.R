@@ -16,6 +16,10 @@ rst_class_by_value <- function(
   
   install_load_pkg(pkg)
   
+  if (!which_func %in% c("max", "min")) {
+    stop("Argument 'which_func' must be either 'max' or 'min'.")
+  }
+  
   message("Checking raster format...")
   if (inherits(rst, c("RasterStack", "RasterLayer"))) {
     rst <- rast(rst)
@@ -53,7 +57,7 @@ rst_class_by_value <- function(
   message("Converting raster to DataFrame and processing data...")
   df <- as.data.frame(rst, xy = TRUE, na.rm = TRUE)
   
-  which_func <- match.arg(which_func)
+  which_func <- match.arg(which_func, choices = c("max", "min"))
   process_df <- df %>% select(-x, -y)
   if (use_abs) process_df <- abs(process_df)
   index_func <- if (which_func == "max") which.max else which.min
