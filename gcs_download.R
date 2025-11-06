@@ -73,9 +73,13 @@ gcs_download <- function(uris, prefix, local_dir,
     ""
   }
   escape_regex <- function(x) gsub("([\\.^$|()*+?{}\\[\\]\\\\])", "\\\\\\1", x)
-  make_local_path <- function(obj_path, prefix, local_dir) {
+  resolve_local_root <- function(p) {
+    if (!dir.exists(p)) dir.create(p, recursive = TRUE, showWarnings = FALSE)
+    normalizePath(p, winslash = .Platform$file.sep, mustWork = FALSE)
+  }
+  make_local_path <- function(obj_path, prefix, local_root) {
     rel <- sub(paste0("^", escape_regex(prefix), "/?"), "", obj_path)
-    file.path(local_dir, rel)
+    file.path(local_root, rel)
   }
   ensure_dir <- function(path) {
     d <- dirname(path)
@@ -97,6 +101,7 @@ gcs_download <- function(uris, prefix, local_dir,
     }
     FALSE
   }
+
   if (!length(uris)) {
     message("no uris provided.")
     return(invisible(character(0)))
@@ -108,17 +113,21 @@ gcs_download <- function(uris, prefix, local_dir,
     ))
   }
   if (!nzchar(gsutil_path) || !file.exists(gsutil_path)) stop(sprintf("gsutil not found at: %s", gsutil_path))
+
+  local_root <- resolve_local_root(local_dir)
+
   chosen <- uris
   if (!is.null(pattern)) chosen <- chosen[grepl(pattern, basename(chosen))]
   if (!length(chosen)) {
     message("no matches to download after optional filter.")
     return(invisible(character(0)))
   }
+
   message(if (dry_run) "dry-run enabled. no files will be written." else "starting batch download.")
   out <- character(0)
   for (obj in chosen) {
     obj_rel  <- sub("^gs://[^/]+/", "", obj)
-    dst_path <- make_local_path(obj_rel, prefix, local_dir)
+    dst_path <- make_local_path(obj_rel, prefix, local_root)
     if (dry_run) {
       message(sprintf("[dry-run] %s -> %s", obj, dst_path))
       out <- c(out, dst_path)
@@ -135,3 +144,4 @@ gcs_download <- function(uris, prefix, local_dir,
   message("batch finished.")
   invisible(out)
 }
+
