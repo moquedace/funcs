@@ -1,3 +1,24 @@
+run_gcloud_auth_in_sdk <- function(gcloud_path = NULL) {
+  detect_bin <- function(hints = character(), fallback = "") {
+    cands <- c(hints, Sys.which(basename(hints)), fallback)
+    cands <- cands[nzchar(cands)]
+    found <- cands[file.exists(cands)]
+    if (length(found)) return(found[[1]])
+    if (nzchar(Sys.which("gcloud"))) return(Sys.which("gcloud"))
+    ""
+  }
+  if (is.null(gcloud_path) || !nzchar(gcloud_path)) {
+    gcloud_path <- detect_bin(c(
+      "C:\\\\Program Files (x86)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd",
+      "C:\\\\Program Files\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd"
+    ))
+  }
+  if (!nzchar(gcloud_path) || !file.exists(gcloud_path)) stop(sprintf("gcloud not found at: %s", gcloud_path))
+  status <- suppressWarnings(system2(gcloud_path, c("auth", "application-default", "login"), stdout = "", stderr = ""))
+  if (!is.null(attr(status, "status")) && attr(status, "status") != 0) stop("authentication via gcloud failed.")
+  message("authentication completed via gcloud cli.")
+}
+
 gcs_list_only <- function(bucket, prefix, file_exts = character(0), gsutil_path = NULL) {
   detect_bin <- function(hints = character(), fallback = "") {
     cands <- c(hints, Sys.which(basename(hints)), fallback)
