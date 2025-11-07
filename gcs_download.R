@@ -145,3 +145,72 @@ gcs_download <- function(uris, prefix, local_dir,
   invisible(out)
 }
 
+gcs_delete <- function(uris,
+                       parallel = TRUE,
+                       force = TRUE,
+                       dry_run = FALSE,
+                       tries = 1,
+                       chunk_size = 100,
+                       gsutil_path = NULL) {
+  detect_bin <- function(hints = character(), fallback = "") {
+    cands <- c(hints, Sys.which(basename(hints)), fallback)
+    cands <- cands[nzchar(cands)]
+    found <- cands[file.exists(cands)]
+    if (length(found)) return(found[[1]])
+    if (nzchar(Sys.which("gsutil"))) return(Sys.which("gsutil"))
+    ""
+  }
+  chunk <- function(x, n) {
+    if (!length(x)) return(list())
+    split(x, ceiling(seq_along(x) / n))
+  }
+  run_rm <- function(gsutil, uris, parallel, force) {
+    flags <- character(0)
+    if (parallel) flags <- c(flags, "-m")
+    cmd <- c(flags, "rm")
+    if (force) cmd <- c(cmd, "-f")
+    suppressWarnings(system2(gsutil, c(cmd, shQuote(uris)), stdout = "", stderr = ""))
+  }
+  retry <- function(fun, ..., tries, base_wait = 1) {
+    for (i in seq_len(tries)) {
+      st <- fun(...)
+      ok <- is.null(attr(st, "status")) || attr(st, "status") == 0
+      if (ok) return(TRUE)
+      Sys.sleep(base_wait * 2^(i - 1))
+    }
+    FALSE
+  }
+
+  if (!length(uris)) {
+    message("no uris provided.")
+    return(invisible(logical(0)))
+  }
+  if (any(!startsWith(uris, "gs://"))) stop("all entries in 'uris' must be gs:// paths.")
+  if (is.null(gsutil_path) || !nzchar(gsutil_path)) {
+    gsutil_path <- detect_bin(c(
+      "C:\\\\Program Files (x86)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gsutil.cmd",
+      "C:\\\\Program Files\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gsutil.cmd"
+    ))
+  }
+  if (!nzchar(gsutil_path) || !file.exists(gsutil_path)) stop(sprintf("gsutil not found at: %s", gsutil_path))
+
+  if (dry_run) {
+    cat(paste(sprintf("[dry-run] delete: %s", uris), collapse = "\n"), "\n")
+    return(invisible(rep(TRUE, length(uris))))
+  }
+
+  parts <- chunk(uris, chunk_size)
+  res <- logical(length(uris))
+  idx <- 1L
+  for (part in parts) {
+    ok <- retry(run_rm, gsutil_path, part, parallel, force, tries = max(1L, tries))
+    res[idx:(idx + length(part) - 1L)] <- ok
+    if (ok) {
+      cat(paste(sprintf("deleted: %s", part), collapse = "\n"), "\n")
+    } else {
+      warning(sprintf("failed to delete %d uri(s) in this chunk.", length(part)))
+    }
+    idx <- idx + length(part)
+  }
+  invisible(res)
+}
