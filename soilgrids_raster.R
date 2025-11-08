@@ -31,13 +31,6 @@ metrics <- c(
 )
 
 
-combinations <- expand.grid(
-  attribute = soil_attributes_eng,
-  depths = depths_cm,
-  metrics = metrics
-)
-
-
 soilgrids_raster <- function(
     attribute,
     depth,
