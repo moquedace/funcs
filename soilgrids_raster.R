@@ -1,3 +1,5 @@
+info_attribute_link <- "https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs_01.html"
+
 soil_attributes <- c(
   "bdod",
   "cec",
