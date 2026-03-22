@@ -1,29 +1,34 @@
-crop_mask_project <- function(rst,
-                              vct,
-                              resolution = 500,
-                              method = "cubicspline",
-                              threads = TRUE,
-                              output_dir,
-                              crs = c("EPSG:4326", "ESRI:54052"),
-                              round = NULL,
-                              resample = FALSE) {
+crop_mask_project <- function(
+    rst,
+    vct,
+    resolution = 500,
+    method = "cubicspline",
+    threads = TRUE,
+    output_dir,
+    crs = c("EPSG:4326", "ESRI:54052"),
+    round = NULL,
+    resample = FALSE,
+    integer = FALSE
+) {
   
   # Function to install and load required packages
-  install_and_load_packages <- function(packages) {
-    installed <- rownames(installed.packages())
-    to_install <- packages[!packages %in% installed]
-    if (length(to_install) > 0) {
-      install.packages(to_install)
-    }
-    suppressPackageStartupMessages(lapply(packages, library, character.only = TRUE))
-  }
+  source(
+    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+  )
   
-  # Required packages
-  required_packages <- c("terra", "dplyr", "janitor")
-  invisible(install_and_load_packages(required_packages))
+  pkg <- c(
+    "terra", "dplyr", "janitor"
+  )
+  
+  invisible(
+    install_load_pkg(pkg)
+  )
+  
   
   # Input validation function
-  validate_inputs <- function(rst, vct, output_dir, crs, resolution, round) {
+  validate_inputs <- function(
+    rst, vct, output_dir, crs, resolution, round, integer
+  ) {
     if (!file.exists(rst)) {
       stop("The raster file does not exist: ", rst)
     }
@@ -34,19 +39,28 @@ crop_mask_project <- function(rst,
       stop("The 'crs' parameter must be a non-empty character vector.")
     }
     if (!is.null(resolution)) {
-      if (!is.numeric(resolution) || length(resolution) != 1 || resolution <= 0) {
-        stop("The 'resolution' parameter must be a positive numeric value.")
+      if (
+        !is.numeric(resolution) || length(resolution) != 1 || resolution <= 0
+      ) {
+        stop(
+          "The 'resolution' parameter must be a positive numeric value."
+        )
       }
     }
     if (!is.null(round)) {
       if (!is.numeric(round) || length(round) != 1 || round < 0) {
-        stop("The 'round' parameter must be a non-negative numeric value.")
+        stop(
+          "The 'round' parameter must be a non-negative numeric value."
+        )
       }
+    }
+    if (!is.logical(integer) || length(integer) != 1 || is.na(integer)) {
+      stop("The 'integer' parameter must be TRUE or FALSE.")
     }
   }
   
   # Validate inputs
-  validate_inputs(rst, vct, output_dir, crs, resolution, round)
+  validate_inputs(rst, vct, output_dir, crs, resolution, round, integer)
   
   # Load raster and vector
   r <- terra::rast(rst)
@@ -79,10 +93,11 @@ crop_mask_project <- function(rst,
     }
     
     # Check if reprojection/resampling is needed
-    current_crs <- paste0(terra::crs(r, proj = FALSE, describe = TRUE,
-                                     parse = FALSE)$authority, ":",
-                          terra::crs(r, proj = FALSE, describe = TRUE,
-                                     parse = FALSE)$code)
+    current_crs <- paste0(
+      terra::crs(r, proj = FALSE, describe = TRUE, parse = FALSE)$authority,
+      ":",
+      terra::crs(r, proj = FALSE, describe = TRUE, parse = FALSE)$code
+    )
     
     if (current_crs != crs_target || resample) {
       r_proj <- terra::project(
@@ -93,13 +108,19 @@ crop_mask_project <- function(rst,
         res = res_adjusted
       )
       message(
-        if (current_crs != crs_target) "Reprojected" else "Resampled",
+        if (
+          current_crs != crs_target
+        ) "Reprojected" else "Resampled",
         " to resolution: ", 
-        if (is_geographic) paste0(round(res_adjusted, 6), "°") else paste0(resolution, "m")
+        if (
+          is_geographic
+        ) paste0(round(res_adjusted, 6), "°") else paste0(resolution, "m")
       )
     } else {
       r_proj <- r
-      message("CRS unchanged and resample = FALSE. Using original raster.")
+      message(
+        "CRS unchanged and resample = FALSE. Using original raster."
+      )
     }
     
     # Crop and mask
@@ -107,8 +128,10 @@ crop_mask_project <- function(rst,
     r_crop <- terra::crop(r_proj, v_proj)
     r_mask <- terra::mask(r_crop, v_proj)
     
-    # Optional rounding
-    if (!is.null(round)) {
+    # Optional integer conversion or rounding
+    if (isTRUE(integer)) {
+      r_mask <- terra::as.int(r_mask)
+    } else if (!is.null(round)) {
       r_mask <- terra::round(r_mask, digits = round)
     }
     
@@ -118,10 +141,19 @@ crop_mask_project <- function(rst,
       janitor::make_clean_names(crs_target),
       paste0("resolution_", resolution, "m")
     )
-    dir.create(output_subdir, recursive = TRUE, showWarnings = FALSE)
+    dir.create(
+      output_subdir, recursive = TRUE, showWarnings = FALSE
+    )
     
-    output_file <- file.path(output_subdir, paste0(names(r_mask), ".tif"))
-    terra::writeRaster(r_mask, filename = output_file, overwrite = TRUE, gdal = "COMPRESS=LZW")
+    output_file <- file.path(
+      output_subdir, paste0(names(r_mask), ".tif")
+    )
+    terra::writeRaster(
+      r_mask,
+      filename = output_file,
+      overwrite = TRUE,
+      gdal = "COMPRESS=LZW"
+    )
     message("Raster saved at: ", output_file)
   }
   
