@@ -23,10 +23,10 @@ process_landsat_indices <- function(
     workers = max(1, future::availableCores() - 1),
     plot_before_save = TRUE,
     overwrite = TRUE,
+    skip_existing = TRUE,
     compression = "LZW",
     poll_interval = 1
 ) {
-  
   
   source(
     "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
@@ -39,8 +39,6 @@ process_landsat_indices <- function(
   install_load_pkg(pkg)
   
   options(scipen = 999)
-  
-  
   
   format_duration_value <- function(start_time, end_time = Sys.time()) {
     duration <- difftime(end_time, start_time, units = "auto")
@@ -119,44 +117,6 @@ process_landsat_indices <- function(
     if (!file.exists(file_path)) {
       stop(sprintf("File not found for '%s': %s", band_name, file_path))
     }
-  }
-  
-  find_single_band_file <- function(input_dir, band_regex, scene_regex) {
-    tif_files <- list.files(
-      path = input_dir,
-      pattern = "\\.tif$",
-      full.names = TRUE
-    )
-    
-    tif_names <- basename(tif_files)
-    
-    keep <- grepl(band_regex, tif_names, ignore.case = TRUE) &
-      grepl(scene_regex, tif_names, ignore.case = TRUE)
-    
-    files_found <- tif_files[keep]
-    
-    if (length(files_found) == 0) {
-      stop(
-        sprintf(
-          "No file found with band_regex = '%s' and scene_regex = '%s'.",
-          band_regex,
-          scene_regex
-        )
-      )
-    }
-    
-    if (length(files_found) > 1) {
-      stop(
-        sprintf(
-          "More than one file found with band_regex = '%s' and scene_regex = '%s':\n%s",
-          band_regex,
-          scene_regex,
-          paste(files_found, collapse = "\n")
-        )
-      )
-    }
-    
-    files_found
   }
   
   load_landsat_bands <- function(
@@ -298,42 +258,27 @@ process_landsat_indices <- function(
     
     index_raster <- switch(
       index_name,
-      
       ndvi = safe_div_terra(nir - red, nir + red),
-      
       savi = safe_div_terra((nir - red) * (1 + savi_l), nir + red + savi_l),
-      
       msavi = {
         msavi_term <- (2 * nir + 1)^2 - 8 * (nir - red)
         msavi_term <- terra::ifel(msavi_term < 0, NA, msavi_term)
         (2 * nir + 1 - sqrt(msavi_term)) / 2
       },
-      
       bsi = safe_div_terra(
         (swir1 + red) - (nir + blue),
         (swir1 + red) + (nir + blue)
       ),
-      
       mbi = safe_div_terra(swir1 - swir2 - nir, swir1 + swir2 + nir) + 0.5,
-      
       ndmi = safe_div_terra(nir - swir1, nir + swir1),
-      
       nbr2 = safe_div_terra(swir1 - swir2, swir1 + swir2),
-      
       brightness_index = sqrt(blue^2 + green^2 + red^2),
-      
       clay_index = safe_div_terra(swir1, swir2),
-      
       nci = safe_div_terra(swir1 - swir2, swir1 + swir2),
-      
       ri = safe_div_terra(red^2, blue * (green^3)),
-      
       fei = safe_div_terra(red, swir1),
-      
       coi = safe_div_terra(red - green, red + green),
-      
       si = safe_div_terra(red - blue, red + blue),
-      
       stop(sprintf("Index '%s' is not implemented.", index_name))
     )
     
@@ -358,7 +303,6 @@ process_landsat_indices <- function(
     )
   }
   
-  
   t_total <- Sys.time()
   indices_to_run <- resolve_indices(indices)
   
@@ -373,33 +317,75 @@ process_landsat_indices <- function(
   cat_time("Indices requested: ", paste(indices_to_run, collapse = ", "))
   cat_time("Save thermal: ", save_thermal)
   cat_time("Parallel mode: ", parallel)
+  cat_time("Skip existing outputs: ", skip_existing)
   
   output_files <- list()
+  
+  index_output_map <- setNames(
+    nm = indices_to_run,
+    object = file.path(output_dir, paste0(prefix, "_", indices_to_run, ".tif"))
+  )
+  
+  thermal_output_file <- file.path(
+    output_dir,
+    paste0(prefix, "_", thermal_name, ".tif")
+  )
+  
+  indices_pending <- indices_to_run
+  
+  if (skip_existing) {
+    indices_pending <- indices_to_run[!file.exists(index_output_map[indices_to_run])]
+    indices_skipped <- indices_to_run[file.exists(index_output_map[indices_to_run])]
+    
+    if (length(indices_skipped) > 0) {
+      for (i in seq_along(indices_to_run)) {
+        index_name <- indices_to_run[i]
+        
+        if (index_name %in% indices_skipped) {
+          cat_time(
+            "[", i, "/", length(indices_to_run), "] skipped: ",
+            index_name,
+            " | output already exists: ",
+            index_output_map[[index_name]]
+          )
+          output_files[[index_name]] <- index_output_map[[index_name]]
+        }
+      }
+    }
+  }
   
   if (!parallel) {
     cat_time("Running in sequential mode")
     
-    bands <- load_landsat_bands(
-      blue_file = blue_file,
-      green_file = green_file,
-      red_file = red_file,
-      nir_file = nir_file,
-      swir1_file = swir1_file,
-      swir2_file = swir2_file,
-      thermal_file = thermal_file,
-      include_thermal = save_thermal,
-      apply_reflectance_scale = apply_reflectance_scale,
-      reflectance_mult = reflectance_mult,
-      reflectance_add = reflectance_add,
-      apply_thermal_scale = apply_thermal_scale,
-      thermal_mult = thermal_mult,
-      thermal_add = thermal_add,
-      thermal_to_celsius = thermal_to_celsius,
-      verbose = TRUE
-    )
+    if (length(indices_pending) > 0 || (save_thermal && !(skip_existing && file.exists(thermal_output_file)))) {
+      bands <- load_landsat_bands(
+        blue_file = blue_file,
+        green_file = green_file,
+        red_file = red_file,
+        nir_file = nir_file,
+        swir1_file = swir1_file,
+        swir2_file = swir2_file,
+        thermal_file = thermal_file,
+        include_thermal = save_thermal,
+        apply_reflectance_scale = apply_reflectance_scale,
+        reflectance_mult = reflectance_mult,
+        reflectance_add = reflectance_add,
+        apply_thermal_scale = apply_thermal_scale,
+        thermal_mult = thermal_mult,
+        thermal_add = thermal_add,
+        thermal_to_celsius = thermal_to_celsius,
+        verbose = TRUE
+      )
+    }
     
     for (i in seq_along(indices_to_run)) {
       index_name <- indices_to_run[i]
+      output_file <- index_output_map[[index_name]]
+      
+      if (skip_existing && file.exists(output_file)) {
+        next
+      }
+      
       t_index <- Sys.time()
       
       cat_time("[", i, "/", length(indices_to_run), "] processing: ", index_name)
@@ -411,8 +397,6 @@ process_landsat_indices <- function(
       )
       
       layer_name <- paste0(prefix, "_", index_name)
-      output_file <- file.path(output_dir, paste0(layer_name, ".tif"))
-      
       names(index_raster) <- layer_name
       
       if (plot_before_save) {
@@ -454,53 +438,59 @@ process_landsat_indices <- function(
     }
     
     if (save_thermal) {
-      t_thermal <- Sys.time()
-      
-      cat_time("processing: thermal covariate")
-      
-      thermal_raster <- bands[["thermal"]]
-      thermal_layer_name <- paste0(prefix, "_", thermal_name)
-      thermal_output_file <- file.path(
-        output_dir,
-        paste0(thermal_layer_name, ".tif")
-      )
-      
-      names(thermal_raster) <- thermal_layer_name
-      
-      if (plot_before_save) {
-        cat_time("plotting: ", thermal_layer_name)
+      if (skip_existing && file.exists(thermal_output_file)) {
+        cat_time(
+          "skipped: ",
+          thermal_name,
+          " | output already exists: ",
+          thermal_output_file
+        )
+        output_files[[thermal_name]] <- thermal_output_file
+      } else {
+        t_thermal <- Sys.time()
         
-        plot_single_raster(
+        cat_time("processing: thermal covariate")
+        
+        thermal_raster <- bands[["thermal"]]
+        thermal_layer_name <- paste0(prefix, "_", thermal_name)
+        
+        names(thermal_raster) <- thermal_layer_name
+        
+        if (plot_before_save) {
+          cat_time("plotting: ", thermal_layer_name)
+          
+          plot_single_raster(
+            raster_obj = thermal_raster,
+            main_title = thermal_layer_name
+          )
+        }
+        
+        cat_time("writing: ", thermal_output_file)
+        
+        write_single_raster(
           raster_obj = thermal_raster,
-          main_title = thermal_layer_name
+          output_file = thermal_output_file,
+          overwrite = overwrite,
+          compression = compression
+        )
+        
+        output_files[[thermal_name]] <- thermal_output_file
+        
+        duration_thermal <- format_duration_value(t_thermal)
+        duration_total <- format_duration_value(t_total)
+        
+        cat(
+          sprintf(
+            "[%s] finished: %s | duration: %.2f %s | total: %.2f %s\n",
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            thermal_name,
+            duration_thermal$value,
+            duration_thermal$unit,
+            duration_total$value,
+            duration_total$unit
+          )
         )
       }
-      
-      cat_time("writing: ", thermal_output_file)
-      
-      write_single_raster(
-        raster_obj = thermal_raster,
-        output_file = thermal_output_file,
-        overwrite = overwrite,
-        compression = compression
-      )
-      
-      output_files[[thermal_name]] <- thermal_output_file
-      
-      duration_thermal <- format_duration_value(t_thermal)
-      duration_total <- format_duration_value(t_total)
-      
-      cat(
-        sprintf(
-          "[%s] finished: %s | duration: %.2f %s | total: %.2f %s\n",
-          format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-          thermal_name,
-          duration_thermal$value,
-          duration_thermal$unit,
-          duration_total$value,
-          duration_total$unit
-        )
-      )
     }
   }
   
@@ -517,13 +507,30 @@ process_landsat_indices <- function(
     future::plan(future::multisession, workers = workers)
     
     future_list <- lapply(
-      seq_along(indices_to_run),
+      seq_along(indices_pending),
       function(i) {
-        index_name <- indices_to_run[i]
+        index_name <- indices_pending[i]
         
         future::future(
           {
             t_index <- Sys.time()
+            
+            layer_name <- paste0(prefix, "_", index_name)
+            output_file <- file.path(output_dir, paste0(layer_name, ".tif"))
+            
+            if (skip_existing && file.exists(output_file)) {
+              duration_index <- format_duration_value(t_index)
+              
+              return(
+                list(
+                  index_name = index_name,
+                  output_file = output_file,
+                  duration_value = duration_index$value,
+                  duration_unit = duration_index$unit,
+                  status = "skipped"
+                )
+              )
+            }
             
             bands_local <- load_landsat_bands(
               blue_file = blue_file,
@@ -550,9 +557,6 @@ process_landsat_indices <- function(
               savi_l = savi_l
             )
             
-            layer_name <- paste0(prefix, "_", index_name)
-            output_file <- file.path(output_dir, paste0(layer_name, ".tif"))
-            
             names(index_raster) <- layer_name
             
             write_single_raster(
@@ -568,7 +572,8 @@ process_landsat_indices <- function(
               index_name = index_name,
               output_file = output_file,
               duration_value = duration_index$value,
-              duration_unit = duration_index$unit
+              duration_unit = duration_index$unit,
+              status = "finished"
             )
           },
           seed = TRUE
@@ -597,10 +602,11 @@ process_landsat_indices <- function(
           
           cat(
             sprintf(
-              "[%s] [%s/%s] | finished: %s | duration: %.2f %s | total: %.2f %s\n",
+              "[%s] [%s/%s] | %s: %s | duration: %.2f %s | total: %.2f %s\n",
               format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
               sum(completed),
               length(future_list),
+              res_i$status,
               res_i$index_name,
               res_i$duration_value,
               res_i$duration_unit,
@@ -615,63 +621,69 @@ process_landsat_indices <- function(
     }
     
     if (save_thermal) {
-      t_thermal <- Sys.time()
-      
-      cat_time("processing: thermal covariate")
-      
-      bands_thermal <- load_landsat_bands(
-        blue_file = blue_file,
-        green_file = green_file,
-        red_file = red_file,
-        nir_file = nir_file,
-        swir1_file = swir1_file,
-        swir2_file = swir2_file,
-        thermal_file = thermal_file,
-        include_thermal = TRUE,
-        apply_reflectance_scale = apply_reflectance_scale,
-        reflectance_mult = reflectance_mult,
-        reflectance_add = reflectance_add,
-        apply_thermal_scale = apply_thermal_scale,
-        thermal_mult = thermal_mult,
-        thermal_add = thermal_add,
-        thermal_to_celsius = thermal_to_celsius,
-        verbose = TRUE
-      )
-      
-      thermal_raster <- bands_thermal[["thermal"]]
-      thermal_layer_name <- paste0(prefix, "_", thermal_name)
-      thermal_output_file <- file.path(
-        output_dir,
-        paste0(thermal_layer_name, ".tif")
-      )
-      
-      names(thermal_raster) <- thermal_layer_name
-      
-      cat_time("writing: ", thermal_output_file)
-      
-      write_single_raster(
-        raster_obj = thermal_raster,
-        output_file = thermal_output_file,
-        overwrite = overwrite,
-        compression = compression
-      )
-      
-      output_files[[thermal_name]] <- thermal_output_file
-      
-      duration_thermal <- format_duration_value(t_thermal)
-      duration_total <- format_duration_value(t_total)
-      
-      cat(
-        sprintf(
-          "[%s] finished: %s | duration: %.2f %s | total: %.2f %s\n",
-          format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      if (skip_existing && file.exists(thermal_output_file)) {
+        cat_time(
+          "skipped: ",
           thermal_name,
-          duration_thermal$value,
-          duration_thermal$unit,
-          duration_total$value,
-          duration_total$unit
+          " | output already exists: ",
+          thermal_output_file
         )
-      )
+        output_files[[thermal_name]] <- thermal_output_file
+      } else {
+        t_thermal <- Sys.time()
+        
+        cat_time("processing: thermal covariate")
+        
+        bands_thermal <- load_landsat_bands(
+          blue_file = blue_file,
+          green_file = green_file,
+          red_file = red_file,
+          nir_file = nir_file,
+          swir1_file = swir1_file,
+          swir2_file = swir2_file,
+          thermal_file = thermal_file,
+          include_thermal = TRUE,
+          apply_reflectance_scale = apply_reflectance_scale,
+          reflectance_mult = reflectance_mult,
+          reflectance_add = reflectance_add,
+          apply_thermal_scale = apply_thermal_scale,
+          thermal_mult = thermal_mult,
+          thermal_add = thermal_add,
+          thermal_to_celsius = thermal_to_celsius,
+          verbose = TRUE
+        )
+        
+        thermal_raster <- bands_thermal[["thermal"]]
+        thermal_layer_name <- paste0(prefix, "_", thermal_name)
+        
+        names(thermal_raster) <- thermal_layer_name
+        
+        cat_time("writing: ", thermal_output_file)
+        
+        write_single_raster(
+          raster_obj = thermal_raster,
+          output_file = thermal_output_file,
+          overwrite = overwrite,
+          compression = compression
+        )
+        
+        output_files[[thermal_name]] <- thermal_output_file
+        
+        duration_thermal <- format_duration_value(t_thermal)
+        duration_total <- format_duration_value(t_total)
+        
+        cat(
+          sprintf(
+            "[%s] finished: %s | duration: %.2f %s | total: %.2f %s\n",
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            thermal_name,
+            duration_thermal$value,
+            duration_thermal$unit,
+            duration_total$value,
+            duration_total$unit
+          )
+        )
+      }
     }
   }
   
