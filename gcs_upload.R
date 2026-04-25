@@ -155,7 +155,7 @@ gcs_upload_files <- function(
       return(found[[1]])
     }
     
-    ""
+    return("")
   }
   
   ps_quote <- function(x) {
@@ -197,11 +197,29 @@ gcs_upload_files <- function(
     x <- gsub("_+", "_", x)
     x <- gsub("^_|_$", "", x)
     
-    x
+    return(x)
   }
   
-  escape_regex <- function(x) {
-    gsub("([\\.^$|()*+?{}\\[\\]\\\\])", "\\\\\\1", x)
+  standardize_path_for_match <- function(x) {
+    x <- normalizePath(
+      x,
+      winslash = "/",
+      mustWork = TRUE
+    )
+    
+    x <- gsub("\\\\", "/", x)
+    
+    if (grepl("^//", x)) {
+      x_without_unc_slashes <- sub("^/+", "", x)
+      x_without_unc_slashes <- gsub("/+", "/", x_without_unc_slashes)
+      x <- paste0("//", x_without_unc_slashes)
+    } else {
+      x <- gsub("/+", "/", x)
+    }
+    
+    x <- gsub("/+$", "", x)
+    
+    return(x)
   }
   
   normalize_gcs_uri <- function(bucket, prefix) {
@@ -215,31 +233,35 @@ gcs_upload_files <- function(
       return(paste0("gs://", bucket))
     }
     
-    paste0("gs://", bucket, "/", prefix)
+    return(paste0("gs://", bucket, "/", prefix))
   }
   
   make_gcs_file_uri <- function(local_file, local_root, gcs_root_uri) {
-    local_file_norm <- normalizePath(
-      local_file,
-      winslash = "/",
-      mustWork = TRUE
+    local_file_norm <- standardize_path_for_match(local_file)
+    local_root_norm <- standardize_path_for_match(local_root)
+    
+    expected_prefix <- paste0(local_root_norm, "/")
+    
+    if (!startsWith(local_file_norm, expected_prefix)) {
+      stop(
+        "The local file is not inside local_root.\n",
+        "local_file: ", local_file_norm, "\n",
+        "local_root: ", local_root_norm
+      )
+    }
+    
+    relative_path <- substring(
+      local_file_norm,
+      first = nchar(expected_prefix) + 1
     )
     
-    local_root_norm <- normalizePath(
-      local_root,
-      winslash = "/",
-      mustWork = TRUE
-    )
-    
-    relative_path <- sub(
-      paste0("^", escape_regex(local_root_norm), "/?"),
-      "",
-      local_file_norm
-    )
-    
+    relative_path <- gsub("^/+", "", relative_path)
     relative_path <- gsub("\\\\", "/", relative_path)
+    relative_path <- gsub("/+", "/", relative_path)
     
-    paste0(gcs_root_uri, "/", relative_path)
+    destination_uri <- paste0(gcs_root_uri, "/", relative_path)
+    
+    return(destination_uri)
   }
   
   upload_one <- function(gsutil_path, source_file, destination_uri, overwrite) {
@@ -264,7 +286,9 @@ gcs_upload_files <- function(
       )
     )
     
-    is.null(attr(status, "status")) || attr(status, "status") == 0
+    ok <- is.null(attr(status, "status")) || attr(status, "status") == 0
+    
+    return(ok)
   }
   
   retry_upload <- function(gsutil_path, source_file, destination_uri, overwrite, tries = 3) {
@@ -283,7 +307,7 @@ gcs_upload_files <- function(
       Sys.sleep(2^(i - 1))
     }
     
-    FALSE
+    return(FALSE)
   }
   
   if (.Platform$OS.type != "windows") {
