@@ -13,6 +13,12 @@ ensure_febr_downloader_packages <- function() {
   ) {
     return(invisible(TRUE))
   }
+
+  # Instalar pacote febr do GitHub
+if (!require(remotes)) {
+  install.packages(pkgs = "remotes")
+}
+remotes::install_github(repo = "laboratorio-de-pedometria/febr-package")
   
   source(
     "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
