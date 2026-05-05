@@ -1,21 +1,21 @@
 # funcs
 
-Repository of R functions and computational routines developed to support reproducible workflows in soil science, digital soil mapping, environmental modelling, raster processing, and spatial prediction.
+Repository of R functions and computational routines developed to support reproducible workflows in soil science, digital soil mapping, environmental modelling, raster processing, machine learning, model evaluation, and spatial prediction.
 
 ## Author
 
-Cássio Antonio Tormena
+Cássio Marques Moquedace
 
 ## Description
 
 This repository contains R scripts and functions designed for geospatial data processing, environmental covariate preparation, raster manipulation, soil data analysis, predictive modelling, model evaluation, and spatial prediction.
 
-The routines were developed in the context of scientific research involving soil science, digital soil mapping, soil organic carbon modelling, environmental covariates, and large-scale spatial analysis.
+The routines were developed in the context of scientific research involving soil science, digital soil mapping, soil organic carbon modelling, soil spectroscopy, environmental covariates, and large-scale spatial analysis.
 
 ## Main topics
 
-- Digital soil mapping
 - Soil science
+- Digital soil mapping
 - Environmental modelling
 - Raster processing
 - Spatial prediction
@@ -69,7 +69,7 @@ Examples:
 
 ### Model evaluation and auxiliary functions
 
-Functions for performance metrics, outlier removal, partial dependence, area of applicability, and class handling.
+Functions for performance metrics, outlier removal, partial dependence analysis, area of applicability, and class handling.
 
 Examples:
 
@@ -83,7 +83,7 @@ Examples:
 
 ### Cloud and file management
 
-Auxiliary routines for cloud storage and file handling.
+Auxiliary routines for cloud storage, file handling, and package management.
 
 Examples:
 
@@ -92,11 +92,9 @@ Examples:
 - `copy_with_robocopy.R`
 - `install_load_pkg.R`
 
-## Citation
+## Recommended citation
 
-If this repository supports your research or technical workflow, please cite it as:
-
-Tormena, C. A. (2026). funcs: R functions and computational routines for geospatial processing, soil modelling, and spatial prediction. GitHub repository.
+Moquedace, C. M. (2026). funcs: R functions and computational routines for geospatial processing, soil modelling, and spatial prediction. GitHub repository.
 
 A DOI will be provided after archival release through Zenodo.
 
