@@ -100,4 +100,12 @@ A DOI will be provided after archival release through Zenodo.
 
 ## License
 
-A license should be added before formal citation or reuse. Suggested license: MIT License, unless institutional or project restrictions require another option.
+This repository is made available under the MIT License.
+
+Copyright (c) 2026 Cássio Marques Moquedace.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the software, and to permit persons to whom the software is furnished to do so, provided that the following conditions are met:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the software.
+
+This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the author be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or the use or other dealings in the software.
