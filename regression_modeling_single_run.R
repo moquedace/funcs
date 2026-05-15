@@ -29,8 +29,6 @@ gc()
 path_raiz <- "D:/usuario_armazenamento/cassio/R/poc_maoc_global_soil_carbon"
 setwd(path_raiz)
 
-
-
 # parameterization
 cut_off_mc <- 0.9
 nseed <- 666
@@ -38,10 +36,19 @@ fold_results <- "results_global"
 
 run_rfe <- TRUE
 
+# predictors that must always remain in the model
+# use character(0) when no fixed predictors are needed
+fixed_predictors <- character(0)
+
+# target variable filter
+# TRUE keeps only target values >= 0
+# FALSE allows negative target values
+filter_target_non_negative <- TRUE
+
 # recursive feature elimination (RFE) parameters
 rfe_fold <- 10
 rfe_repeat <- 3
-rfe_size <- 2#2:60
+rfe_size <- 2 # 2:60
 rfe_tn_length <- 4
 tolerance <- FALSE
 tol_per <- 2
@@ -51,51 +58,54 @@ model_fold <- 10
 model_repeat <- 10
 model_tn_length <- 10
 metric_otm <- "mqi"
-maxim <- T
+maxim <- TRUE
 
-
-# funcs
+# functions
 source(
   "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/pst_res_mqi.R"
 )
 
-
 custom_rcaretFuncs <- caretFuncs
 custom_rcaretFuncs$summary <- pst_res_mqi
-custom_rcaretFuncs$fit <- function (x, y, first, last, ...) {
+custom_rcaretFuncs$fit <- function(x, y, first, last, ...) {
   train(x, y, metric = "mqi", ...)
 }
-
 
 create_dirs <- function(base_path, sub_dirs) {
   purrr::walk(sub_dirs, ~{
     dir_path <- file.path(base_path, .x)
-    if (!dir.exists(dir_path)) dir.create(dir_path, recursive = TRUE)
+    
+    if (!dir.exists(dir_path)) {
+      dir.create(dir_path, recursive = TRUE)
+    }
   })
 }
-
 
 safe_read <- function(file_path, ...) {
   if (!file.exists(file_path)) {
     stop(paste("error: file not found", file_path))
   }
+  
   readr::read_csv(file_path, show_col_types = FALSE, ...)
 }
-
 
 qrf_mean <- getModelInfo("qrf")$qrf
 qrf_mean$predict <- function(modelFit, newdata, submodels = NULL) {
   out <- predict(modelFit, newdata, what = mean)
-  if (is.matrix(out)) out <- out[, 1]
+  
+  if (is.matrix(out)) {
+    out <- out[, 1]
+  }
+  
   out
 }
-
 
 # list of models
 models <- c("qrf", "xgbTree")
 
 # factor variables
-varfact <- c("id") %>% sort()
+varfact <- c("id") %>%
+  sort()
 
 # dummy variables
 dummy_vars_raw <- unlist(
@@ -191,51 +201,53 @@ dummy_vars_raw <- unlist(
       "soil_class_fao_umbrisols",
       "soil_class_fao_vertisols"
     )
-  ), use.names = FALSE
+  ),
+  use.names = FALSE
 )
 
 # k-fold settings
-kfold <- F
+kfold <- FALSE
 col_kfold <- character(0)
 
 # read base dataset
-dfbase <- safe_read("./extract_xy/xy_mixed.csv") %>% 
-  select(
+dfbase <- safe_read("./extract_xy/xy_mixed.csv") %>%
+  dplyr::select(
     -c(1:2)
   )
+
 varsy <- names(dfbase)[18:1]
 
 # parallel cluster setup
-cores <- 15#max(1, detectCores() - 1)
+cores <- 15 # max(1, detectCores() - 1)
 cl <- parallel::makeCluster(cores)
 cl <- parallelly::autoStopCluster(cl)
-
-
-
-i = 1
-j = 3
-n = 1
 
 for (i in seq_along(models)) {
   
   tmodel <- Sys.time()
   
-  
   for (j in seq_along(varsy)[3:18]) {
     
     tvar <- Sys.time()
     target_var <- varsy[j]
+    
     cat(
       sprintf(
         "model: %s | variable: %s\n",
-        models[i], target_var
+        models[i],
+        target_var
       )
     )
     
-    
     path_results <- file.path(path_raiz, fold_results)
     
-    create_dirs(path_results, c(models[i], file.path(models[i], target_var)))
+    create_dirs(
+      path_results,
+      c(
+        models[i],
+        file.path(models[i], target_var)
+      )
+    )
     
     path_results <- file.path(path_results, models[i], target_var)
     
@@ -253,7 +265,6 @@ for (i in seq_along(models)) {
       )
     )
     
-    
     dfperf <- tibble::tibble(
       model = NA_character_,
       target_var = NA_character_,
@@ -268,23 +279,72 @@ for (i in seq_along(models)) {
       rmse_null_full = NA_real_
     )
     
-    
     dy <- dfbase %>%
-      dplyr::select(dplyr::all_of(target_var))
+      dplyr::select(
+        dplyr::all_of(target_var)
+      )
     
     dx <- dfbase %>%
-      dplyr::select(-dplyr::all_of(varsy))
+      dplyr::select(
+        -dplyr::all_of(varsy)
+      )
     
-    vars_fact_present <- intersect(varfact, names(dx))
-    dummy_vars_present <- intersect(dummy_vars_raw, names(dx))
+    dyx_sel <- dplyr::bind_cols(dy, dx)
     
-    dyx_sel <- dplyr::bind_cols(dy, dx) %>%
-      dplyr::filter(.data[[target_var]] >= 0)
+    if (filter_target_non_negative) {
+      dyx_sel <- dyx_sel %>%
+        dplyr::filter(.data[[target_var]] >= 0)
+    }
+    
+    has_kfold_col <- length(col_kfold) == 1 &&
+      nzchar(col_kfold) &&
+      col_kfold %in% names(dyx_sel)
+    
+    kfold_col_present <- if (has_kfold_col) {
+      col_kfold
+    } else {
+      character(0)
+    }
+    
+    vars_fact_present <- intersect(varfact, names(dyx_sel)) %>%
+      setdiff(kfold_col_present)
+    
+    dummy_vars_present <- intersect(dummy_vars_raw, names(dyx_sel))
+    
+    fixed_predictors_present <- intersect(fixed_predictors, names(dyx_sel)) %>%
+      setdiff(kfold_col_present)
+    
+    fixed_predictors_missing <- setdiff(fixed_predictors, names(dyx_sel))
+    
+    if (length(fixed_predictors_missing) > 0) {
+      warning(
+        paste0(
+          "Some fixed predictors were not found in dyx_sel and will be ignored: ",
+          paste(fixed_predictors_missing, collapse = ", ")
+        )
+      )
+    }
+    
+    if (length(intersect(fixed_predictors, kfold_col_present)) > 0) {
+      warning(
+        paste0(
+          "The kfold column cannot be used as a fixed predictor and will be ignored as predictor: ",
+          paste(kfold_col_present, collapse = ", ")
+        )
+      )
+    }
+    
+    if (!kfold && has_kfold_col) {
+      dyx_sel <- dyx_sel %>%
+        dplyr::select(
+          -dplyr::all_of(kfold_col_present)
+        )
+    }
     
     vars_numeric_to_clean <- names(dyx_sel)[
       vapply(dyx_sel, is.numeric, logical(1))
     ] %>%
-      setdiff(vars_fact_present)
+      setdiff(c(vars_fact_present, kfold_col_present))
     
     dyx_sel <- dyx_sel %>%
       dplyr::mutate(
@@ -315,7 +375,12 @@ for (i in seq_along(models)) {
     
     nzv_candidates <- setdiff(
       names(dyx_sel),
-      c(target_var, dummy_vars_present)
+      c(
+        target_var,
+        dummy_vars_present,
+        fixed_predictors_present,
+        kfold_col_present
+      )
     )
     
     if (length(nzv_candidates) > 0) {
@@ -327,7 +392,7 @@ for (i in seq_along(models)) {
       nzv_vars <- character(0)
     }
     
-    write.csv2(
+    readr::write_csv2(
       data.frame(
         nzv_removed = nzv_vars,
         stringsAsFactors = FALSE
@@ -336,18 +401,25 @@ for (i in seq_along(models)) {
         path_results,
         "select/nzv",
         paste0(target_var, "_nzv.csv")
-      ),
-      row.names = FALSE
+      )
     )
     
     if (length(nzv_vars) > 0) {
       dyx_sel <- dyx_sel %>%
-        dplyr::select(-dplyr::any_of(nzv_vars))
+        dplyr::select(
+          -dplyr::any_of(nzv_vars)
+        )
     }
     
     cor_candidates <- setdiff(
       names(dyx_sel),
-      c(target_var, dummy_vars_present, vars_fact_present)
+      c(
+        target_var,
+        dummy_vars_present,
+        vars_fact_present,
+        fixed_predictors_present,
+        kfold_col_present
+      )
     )
     
     cor_candidates <- cor_candidates[
@@ -356,7 +428,9 @@ for (i in seq_along(models)) {
     
     if (length(cor_candidates) >= 2) {
       mcor <- dyx_sel %>%
-        dplyr::select(dplyr::all_of(cor_candidates)) %>%
+        dplyr::select(
+          dplyr::all_of(cor_candidates)
+        ) %>%
         cor(
           method = "spearman",
           use = "pairwise.complete.obs"
@@ -371,7 +445,7 @@ for (i in seq_along(models)) {
       fc <- character(0)
     }
     
-    write.csv2(
+    readr::write_csv2(
       data.frame(
         cor_removed = fc,
         stringsAsFactors = FALSE
@@ -380,26 +454,18 @@ for (i in seq_along(models)) {
         path_results,
         "select/cor",
         paste0(target_var, "_cor.csv")
-      ),
-      row.names = FALSE
+      )
     )
     
     if (length(fc) > 0) {
       dyx_sel <- dyx_sel %>%
-        dplyr::select(-dplyr::any_of(fc))
+        dplyr::select(
+          -dplyr::any_of(fc)
+        )
     }
     
-    
-    
-    
-    
-    
-    has_kfold_col <- !is.null(col_kfold) &&
-      length(col_kfold) == 1 &&
-      nzchar(col_kfold) &&
-      col_kfold %in% names(dyx_sel)
-    
     if (kfold) {
+      
       if (!has_kfold_col) {
         stop(
           paste0(
@@ -416,16 +482,17 @@ for (i in seq_along(models)) {
       )
       
       dyx_sel <- dyx_sel %>%
-        dplyr::select(-dplyr::all_of(col_kfold))
+        dplyr::select(
+          -dplyr::all_of(kfold_col_present)
+        )
       
     } else {
-      if (has_kfold_col) {
-        dyx_sel <- dyx_sel %>%
-          dplyr::select(-dplyr::all_of(col_kfold))
-      }
-    }
+      
+      gkfold <- NULL
+      
+    } # end if kfold
     
-    
+    fixed_predictors_present <- intersect(fixed_predictors_present, names(dyx_sel))
     
     registerDoParallel(cl)
     
@@ -445,13 +512,33 @@ for (i in seq_along(models)) {
       )
     }
     
-    if (run_rfe) {
+    rfe_candidate_predictors <- setdiff(
+      all_predictors_after_filter,
+      fixed_predictors_present
+    )
+    
+    if (run_rfe && length(rfe_candidate_predictors) > 0) {
       
       cat("RFE enabled: running recursive feature elimination\n")
       
+      rfe_data <- dyx_sel %>%
+        dplyr::select(
+          dplyr::all_of(c(target_var, rfe_candidate_predictors))
+        )
+      
+      rfe_size_valid <- sort(
+        unique(
+          rfe_size[rfe_size <= length(rfe_candidate_predictors)]
+        )
+      )
+      
+      if (length(rfe_size_valid) == 0) {
+        rfe_size_valid <- length(rfe_candidate_predictors)
+      }
+      
       set.seed(nseed)
       rfe_ctrl <- rfeControl(
-        method = "repeatedcv", 
+        method = "repeatedcv",
         repeats = rfe_repeat,
         number = rfe_fold,
         verbose = FALSE,
@@ -461,7 +548,7 @@ for (i in seq_along(models)) {
       
       set.seed(nseed)
       rfe_model_ctrl <- trainControl(
-        method = "repeatedcv", 
+        method = "repeatedcv",
         number = rfe_fold,
         repeats = rfe_repeat,
         savePredictions = TRUE,
@@ -471,8 +558,8 @@ for (i in seq_along(models)) {
       set.seed(nseed)
       rfe_fit <- rfe(
         form = formu,
-        data = dyx_sel,
-        sizes = rfe_size,
+        data = rfe_data,
+        sizes = rfe_size_valid,
         method = if (models[i] == "qrf_mean") get(models[i]) else models[i],
         metric = metric_otm,
         maximize = maxim,
@@ -487,7 +574,10 @@ for (i in seq_along(models)) {
       cat(
         sprintf(
           "time for rfe - model: %s | variable: %s | duration: %.2f %s\n",
-          models[i], target_var, Sys.time() - tvar, units(Sys.time() - tvar)
+          models[i],
+          target_var,
+          Sys.time() - tvar,
+          units(Sys.time() - tvar)
         )
       )
       
@@ -510,13 +600,14 @@ for (i in seq_along(models)) {
         lrfepred <- rfe_fit$optVariables
         
         cat(sprintf("rfe select: %d variables\n", length(lrfepred)))
-      }
+        
+      } # end if tolerance
       
       cat("-----------------------------------------------------------\n")
       
       if (length(varfact) > 0) {
         
-        original_predictor_names <- names(dyx_sel)
+        original_predictor_names <- names(rfe_data)
         
         map_factor_back <- function(x, factor_vars, original_names) {
           
@@ -542,9 +633,41 @@ for (i in seq_along(models)) {
             original_names = original_predictor_names
           )
         )
-      }
+        
+      } # end if varfact
       
-      selection_method <- "rfe"
+      rfe_selected_predictors <- lrfepred
+      
+      lrfepred <- unique(
+        c(fixed_predictors_present, rfe_selected_predictors)
+      )
+      
+      selection_method <- ifelse(
+        length(fixed_predictors_present) > 0,
+        "rfe_plus_fixed",
+        "rfe"
+      )
+      
+    } else if (run_rfe && length(rfe_candidate_predictors) == 0) {
+      
+      cat("RFE enabled, but no candidate predictors are available after filters. Using fixed predictors only\n")
+      
+      rfe_fit <- NULL
+      
+      lrfepred <- fixed_predictors_present
+      
+      lrferes <- tibble::tibble(
+        selection_method = "fixed_only_no_rfe_candidates",
+        target_var = target_var,
+        model = models[i],
+        n_predictors = length(lrfepred),
+        predictors = paste(lrfepred, collapse = ";")
+      )
+      
+      selection_method <- "fixed_only"
+      
+      cat(sprintf("fixed predictors selected: %d variables\n", length(lrfepred)))
+      cat("-----------------------------------------------------------\n")
       
     } else {
       
@@ -566,29 +689,38 @@ for (i in seq_along(models)) {
       
       cat(sprintf("predictors selected without RFE: %d variables\n", length(lrfepred)))
       cat("-----------------------------------------------------------\n")
+      
+    } # end if run_rfe
+    
+    if (length(lrfepred) == 0) {
+      stop(
+        paste0(
+          "No predictors were selected for target: ",
+          target_var
+        )
+      )
     }
     
-    write.csv2(
+    readr::write_csv2(
       data.frame(lrferes),
       file = file.path(
         path_results,
         "select/rfe/metric",
-        paste0("rfe_metrics.csv")
-      ),
-      row.names = FALSE
+        "rfe_metrics.csv"
+      )
     )
     
-    write.csv2(
+    readr::write_csv2(
       data.frame(
         selection_method = selection_method,
-        pred_sel = lrfepred
+        pred_sel = lrfepred,
+        is_fixed_predictor = lrfepred %in% fixed_predictors_present
       ),
       file = file.path(
         path_results,
         "select/rfe/select",
-        paste0("rfe_pred_sel.csv")
-      ),
-      row.names = FALSE
+        "rfe_pred_sel.csv"
+      )
     )
     
     dfselrfe <- dyx_sel %>%
@@ -596,14 +728,12 @@ for (i in seq_along(models)) {
         dplyr::all_of(c(target_var, lrfepred))
       )
     
-    
-    
     set.seed(nseed)
     model_ctrl <- trainControl(
-      method = "repeatedcv", 
+      method = "repeatedcv",
       number = model_fold,
       repeats = model_repeat,
-      savePredictions = T,
+      savePredictions = TRUE,
       index = if (kfold) gkfold else NULL,
       summaryFunction = pst_res_mqi
     )
@@ -612,13 +742,14 @@ for (i in seq_along(models)) {
     
     set.seed(nseed)
     registerDoParallel(cl)
+    
     model_fit <- train(
       form = formu,
       data = dfselrfe,
       metric = metric_otm,
-      importance = T,
+      importance = TRUE,
       maximize = maxim,
-      method = if (models[i] == "qrf_mean") get(models[i]) else models[i], 
+      method = if (models[i] == "qrf_mean") get(models[i]) else models[i],
       trControl = model_ctrl,
       tuneLength = model_tn_length
     )
@@ -629,7 +760,8 @@ for (i in seq_along(models)) {
     cat(
       sprintf(
         "%s | variable: %s | duration: %.2f %s\n",
-        model_fit[["modelInfo"]][["label"]], target_var,
+        model_fit[["modelInfo"]][["label"]],
+        target_var,
         Sys.time() - tvar,
         units(Sys.time() - tvar)
       )
@@ -641,20 +773,22 @@ for (i in seq_along(models)) {
     
     pred_obs_null_full <- data.frame(
       pred = rep(mean(dfselrfe[[target_var]]), nrow(dfselrfe)),
-      obs = dfselrfe[[target_var]])
+      obs = dfselrfe[[target_var]]
+    )
     
-    pred_obs_full <- data.frame(pred = predict(lmodel, dfselrfe), 
-                                obs = dfselrfe[[target_var]])  %>% 
+    pred_obs_full <- data.frame(
+      pred = predict(lmodel, dfselrfe),
+      obs = dfselrfe[[target_var]]
+    ) %>%
       na.omit()
     
     pr_full <- getTrainPerf(lmodel)
     
-    pr_null_full = pst_res_mqi(pred_obs_null_full)
-    
-    
+    pr_null_full <- pst_res_mqi(pred_obs_null_full)
     
     pred_imp <- caret::varImp(
-      object = lmodel$finalModel, scale = FALSE
+      object = lmodel$finalModel,
+      scale = FALSE
     )
     
     lpredimp <- pred_imp %>%
@@ -673,9 +807,14 @@ for (i in seq_along(models)) {
       dplyr::mutate(
         importance = .data[[importance_col]]
       ) %>%
-      dplyr::select(predictor, importance) %>%
+      dplyr::select(
+        predictor,
+        importance
+      ) %>%
       dplyr::filter(!is.na(importance)) %>%
-      dplyr::arrange(dplyr::desc(importance))
+      dplyr::arrange(
+        dplyr::desc(importance)
+      )
     
     lpredimp_top <- lpredimp %>%
       dplyr::slice_head(n = 15) %>%
@@ -699,7 +838,13 @@ for (i in seq_along(models)) {
     
     Sys.sleep(2)
     
-    g2 <- ggplot(pred_obs_full, aes(x = obs, y = pred)) +
+    g2 <- ggplot(
+      pred_obs_full,
+      aes(
+        x = obs,
+        y = pred
+      )
+    ) +
       geom_abline(col = "red", lwd = 2) +
       geom_point(alpha = 0.25) +
       labs(
@@ -710,42 +855,37 @@ for (i in seq_along(models)) {
     
     plot(g2)
     
-    write.csv2(
+    readr::write_csv2(
       lpredimp,
-      file.path(
+      file = file.path(
         path_results,
         "performance/imp_pred",
         "imp_pred.csv"
-      ),
-      row.names = FALSE
+      )
     )
-    
     
     dfperf[1, ] <- list(
       model = lmodel$modelInfo$label,
-      
       target_var = target_var,
-      
       n = nrow(dfselrfe),
-      
       ccc_full = pr_full$Trainccc,
       r2_full = pr_full$Trainr2,
       nse_full = pr_full$Trainnse,
       mae_full = pr_full$Trainmae,
       rmse_full = pr_full$Trainrmse,
       mqi_full = pr_full$Trainmqi,
-      
       mae_null_full = pr_null_full["mae"],
       rmse_null_full = pr_null_full["rmse"]
     )
     
-    
-    write.csv2(
-      dfperf, row.names = F,
-      file.path(
-        path_results, "performance/csv",
-        paste0(target_var, "_performance.csv")))
-    
+    readr::write_csv2(
+      dfperf,
+      file = file.path(
+        path_results,
+        "performance/csv",
+        paste0(target_var, "_performance.csv")
+      )
+    )
     
     saveRDS(
       object = model_fit,
@@ -759,6 +899,9 @@ for (i in seq_along(models)) {
     saveRDS(
       object = list(
         run_rfe = run_rfe,
+        filter_target_non_negative = filter_target_non_negative,
+        fixed_predictors = fixed_predictors,
+        fixed_predictors_present = fixed_predictors_present,
         rfe_fit = rfe_fit,
         selected_predictors = lrfepred,
         selection_method = selection_method
@@ -774,6 +917,9 @@ for (i in seq_along(models)) {
       object = list(
         model_fit = model_fit,
         run_rfe = run_rfe,
+        filter_target_non_negative = filter_target_non_negative,
+        fixed_predictors = fixed_predictors,
+        fixed_predictors_present = fixed_predictors_present,
         rfe_fit = rfe_fit,
         selected_predictors = lrfepred,
         selection_method = selection_method,
@@ -806,10 +952,7 @@ for (i in seq_along(models)) {
     
     gc()
     
-    
-    
-  }
-  
+  } # end for j
   
   cat(
     sprintf(
@@ -820,15 +963,4 @@ for (i in seq_along(models)) {
     )
   )
   
-  
-  
-  
-}
-
-
-
-
-
-
-
-
+} # end for i
