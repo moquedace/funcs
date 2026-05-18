@@ -25,6 +25,7 @@ The function expects:
 3. Optional columns for sampling units.
 4. Optional depth columns.
 5. Optional weights, valid ranges, and selection settings.
+6. Optional graphical outputs with `graphs = TRUE`.
 
 Example objects used below:
 
@@ -530,7 +531,115 @@ res_custom$selected_summary
 selected_data_custom <- res_custom$selected_data
 ```
 
-## 15. Export selected dataset
+## 15. Generate graphical outputs
+
+Use `graphs = TRUE` when you want the function to return diagnostic plots together with the tabular outputs.
+
+Graphs are returned as `ggplot` objects in:
+
+```r
+res_graphs$graphs
+```
+
+They are not saved automatically.
+
+```r
+res_graphs <- soil_attr_balance(
+  data = soil_data,
+  attrs = soil_attributes_core,
+  unit_cols = "coord_id",
+  depth_cols = c("upper_depth_cm", "lower_depth_cm"),
+  required_attrs = "c_gkg",
+  target_attrs = "c_gkg",
+  attribute_weights = attribute_weights_core,
+  valid_ranges = valid_ranges_core,
+  use_valid_ranges_for_combinations = TRUE,
+  min_pct = 0.50,
+  ranking_metric = "weighted_score",
+  selection_priority = "richness_first",
+  return_selected = TRUE,
+  graphs = TRUE,
+  graph_top_n = 30,
+  parallel = TRUE
+)
+```
+
+View available graph names:
+
+```r
+names(res_graphs$graphs)
+```
+
+View graphs:
+
+```r
+res_graphs$graphs$attribute_completeness
+
+res_graphs$graphs$row_attribute_availability
+
+res_graphs$graphs$best_combo_by_size
+
+res_graphs$graphs$marginal_loss
+
+res_graphs$graphs$bottleneck_intensity
+
+res_graphs$graphs$selection_candidates
+
+res_graphs$graphs$missingness_correlation
+
+res_graphs$graphs$depth_selected_candidate
+
+res_graphs$graphs$unit_selected_candidate
+```
+
+Some graph objects are returned only when the required information is available.
+
+For example, `depth_selected_candidate` is returned only when depth information is supplied, and `unit_selected_candidate` is returned only when `unit_cols` is supplied.
+
+## 16. Save one graph
+
+Use `ggplot2::ggsave()` to save a specific graph.
+
+```r
+ggplot2::ggsave(
+  filename = "attribute_completeness.png",
+  plot = res_graphs$graphs$attribute_completeness,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+```
+
+## 17. Save all available graphs
+
+Create a folder and save every graph returned by the function.
+
+```r
+dir.create(
+  "soil_attr_balance_graphs",
+  showWarnings = FALSE,
+  recursive = TRUE
+)
+
+purrr::iwalk(
+  res_graphs$graphs,
+  function(plot_obj, plot_name) {
+    
+    ggplot2::ggsave(
+      filename = file.path(
+        "soil_attr_balance_graphs",
+        paste0(plot_name, ".png")
+      ),
+      plot = plot_obj,
+      width = 8,
+      height = 6,
+      dpi = 300
+    )
+  }
+)
+```
+
+## 18. Export selected dataset
 
 `soil_attr_balance()` does not write files automatically.
 
@@ -550,7 +659,7 @@ readr::write_csv2(
 )
 ```
 
-## 16. Save diagnostic outputs
+## 19. Save diagnostic outputs
 
 Example:
 
@@ -586,7 +695,7 @@ readr::write_csv2(
 )
 ```
 
-## 17. Recommended practical workflow
+## 20. Recommended practical workflow
 
 ```r
 source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
@@ -625,6 +734,14 @@ soil_attributes_core <- setdiff(
   c("ca_co3_gkg", "na_mmolkg")
 )
 
+attribute_weights_core <- attribute_weights_soil[
+  names(attribute_weights_soil) %in% soil_attributes_core
+]
+
+valid_ranges_core <- valid_ranges_soil[
+  names(valid_ranges_soil) %in% soil_attributes_core
+]
+
 res_final <- soil_attr_balance(
   data = soil_data,
   attrs = soil_attributes_core,
@@ -632,13 +749,15 @@ res_final <- soil_attr_balance(
   depth_cols = c("upper_depth_cm", "lower_depth_cm"),
   required_attrs = "c_gkg",
   target_attrs = "c_gkg",
-  attribute_weights = attribute_weights_soil[names(attribute_weights_soil) %in% soil_attributes_core],
-  valid_ranges = valid_ranges_soil[names(valid_ranges_soil) %in% soil_attributes_core],
+  attribute_weights = attribute_weights_core,
+  valid_ranges = valid_ranges_core,
   use_valid_ranges_for_combinations = TRUE,
   min_pct = 0.50,
   ranking_metric = "weighted_score",
   selection_priority = "richness_first",
   return_selected = TRUE,
+  graphs = TRUE,
+  graph_top_n = 30,
   parallel = TRUE
 )
 
@@ -646,9 +765,13 @@ res_final$selected_summary
 res_final$decision_notes
 
 soil_selected <- res_final$selected_data
+
+names(res_final$graphs)
+
+res_final$graphs$attribute_completeness
 ```
 
-## 18. Notes
+## 21. Notes
 
 Use `richness_first` when the goal is to maximize analytical richness.
 
@@ -663,3 +786,9 @@ Use `target_attrs` when you want a specific summary for an important attribute, 
 Use `valid_ranges` first as a diagnostic, then decide whether strict range filtering is appropriate.
 
 Use `return_selected = TRUE` only when you are ready to generate a filtered dataset.
+
+Use `graphs = TRUE` when you want visual diagnostic outputs.
+
+Use `graph_top_n` to control how many top records are used in plots such as bottleneck intensity and selection candidates.
+
+Graphs are returned as R objects and are not saved automatically.
