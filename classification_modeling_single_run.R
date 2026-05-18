@@ -23,7 +23,8 @@ pkg <- c(
   "randomForest",
   "kknn",
   "kernlab",
-  "C50"
+  "C50",
+  "foreach"
 )
 
 install_load_pkg(pkg)
@@ -34,40 +35,6 @@ gc()
 path_raiz <- "//200.235.173.229/dados_processamento/cassio/R/atlas_qf"
 setwd(path_raiz)
 
-# parameterization
-cut_off_mc <- 0.9
-nseed <- 666
-fold_results <- "results_class_sentinel_5m_single_run"
-
-run_rfe <- TRUE
-
-# predictors that must always remain in the model
-# use character(0) when no fixed predictors are needed
-fixed_predictors <- character(0)
-
-# recursive feature elimination parameters
-rfe_fold <- 10
-rfe_repeat <- 1
-rfe_size <- seq(2, 72, 2)
-rfe_tn_length <- 1
-tolerance <- FALSE
-tol_per <- 1
-
-# model parameters
-model_fold <- 10
-model_repeat <- 10
-model_tn_length <- 10
-metric_otm <- "kappa"
-maxim <- TRUE
-class_probs <- FALSE
-
-# k-fold settings
-# if kfold = TRUE, col_kfold is used for grouped internal resampling
-# if kfold = FALSE, col_kfold is removed from predictors if present
-kfold <- FALSE
-col_kfold <- "id"
-
-# functions
 source(
   "https://github.com/moquedace/funcs/blob/main/gbm_custom.R?raw=TRUE"
 )
@@ -76,32 +43,94 @@ source(
   "https://github.com/moquedace/funcs/blob/main/pst_res_class_multiclass.R?raw=TRUE"
 )
 
-custom_rcaretFuncs <- caretFuncs
-custom_rcaretFuncs$summary <- pst_res_class_multiclass
-custom_rcaretFuncs$fit <- function(x, y, first, last, ...) {
-  train(x, y, metric = "kappa", ...)
-}
+source(
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/caret_rfe_functions.R"
+)
 
-create_dirs <- function(base_path, sub_dirs) {
-  purrr::walk(sub_dirs, ~{
-    dir_path <- file.path(base_path, .x)
-    
-    if (!dir.exists(dir_path)) {
-      dir.create(dir_path, recursive = TRUE)
-    }
-  })
-}
+# parameterization
 
-safe_read <- function(file_path, ...) {
-  if (!file.exists(file_path)) {
-    stop(paste("error: file not found", file_path))
-  }
-  
-  readr::read_csv2(file_path, show_col_types = FALSE, ...)
-}
+cut_off_mc <- 0.9
+nseed <- 666
+fold_results <- "results_class_sentinel_5m_single_run"
+
+row_limit <- Inf
+# Use row_limit <- 50 only for quick tests.
+
+run_rfe <- TRUE
+
+# predictors that must always remain in the model
+# use character(0) when no fixed predictors are needed
+
+fixed_predictors <- character(0)
+
+# recursive feature elimination parameters
+
+rfe_fold <- 10
+rfe_repeat <- 1
+rfe_size <- seq(2, 72, 2)
+rfe_tn_length <- 1
+
+tolerance <- FALSE
+tol_per <- 1
+
+# model parameters
+
+model_fold <- 10
+model_repeat <- 10
+model_tn_length <- 10
+
+metric_otm <- "kappa"
+maxim <- TRUE
+class_probs <- FALSE
+
+# k-fold settings
+# if kfold = TRUE, col_kfold is used for grouped internal resampling
+# if kfold = FALSE, col_kfold is removed from predictors if present
+
+kfold <- FALSE
+col_kfold <- "id"
+
+# parallel parameters
+
+use_parallel <- TRUE
+allow_parallel_rfe <- TRUE
+allow_parallel_model <- TRUE
+
+cores <- max(
+  1,
+  parallel::detectCores() - 1
+)
+
+parallel_packages <- c(
+  "caret",
+  "dplyr",
+  "tidyr",
+  "purrr",
+  "tibble",
+  "readr",
+  "stringr",
+  "randomForest",
+  "kknn",
+  "kernlab",
+  "C50",
+  "gbm",
+  "DescTools",
+  "foreach"
+)
+
+# caret functions
+
+custom_rcaretFuncs <- make_ccaret_funcs(
+  metric_value = metric_otm,
+  summary_function = pst_res_class_multiclass
+)
+
+# support functions
 
 get_caret_method <- function(model_name) {
+  
   if (exists(model_name, inherits = TRUE)) {
+    
     model_object <- get(model_name, inherits = TRUE)
     
     if (is.list(model_object) && all(c("label", "library", "type") %in% names(model_object))) {
@@ -113,6 +142,7 @@ get_caret_method <- function(model_name) {
 }
 
 map_factor_back <- function(x, factor_vars, original_names) {
+  
   if (x %in% original_names) {
     return(x)
   }
@@ -126,51 +156,8 @@ map_factor_back <- function(x, factor_vars, original_names) {
   hits[which.max(nchar(hits))]
 }
 
-make_repeated_group_kfold <- function(group, k, repeats, seed) {
-  group <- as.factor(group)
-  group <- droplevels(group)
-  
-  n_groups <- length(unique(group))
-  
-  if (n_groups < 2) {
-    stop("At least two groups are required to create grouped folds.")
-  }
-  
-  k_use <- min(k, n_groups)
-  
-  if (k_use < k) {
-    warning(
-      paste0(
-        "The requested number of folds was larger than the number of groups. ",
-        "Using k = ",
-        k_use,
-        " instead."
-      )
-    )
-  }
-  
-  index_list <- list()
-  
-  for (rep_id in seq_len(repeats)) {
-    
-    set.seed(seed + rep_id - 1)
-    
-    fold_list <- caret::groupKFold(
-      group = group,
-      k = k_use
-    )
-    
-    for (fold_id in seq_along(fold_list)) {
-      index_name <- sprintf("Fold%02d.Rep%02d", fold_id, rep_id)
-      index_list[[index_name]] <- fold_list[[fold_id]]
-    } # end for fold_id
-    
-  } # end for rep_id
-  
-  index_list
-}
-
 # list of models
+
 models <- c(
   "rf",
   "kknn",
@@ -180,21 +167,42 @@ models <- c(
 )
 
 # factor predictor variables
+
 varfact <- c("class") %>%
   sort()
 
 # dummy variables protected from correlation filtering
+
 dummy_vars_raw <- character(0)
 
 # read base dataset
-dfbase <- safe_read("./extract_xy/yx_class_sentinel_5m.csv")
+
+dfbase <- safe_read_csv2(
+  "./extract_xy/yx_class_sentinel_5m.csv"
+)
+
+if (is.finite(row_limit) && nrow(dfbase) > row_limit) {
+  dfbase <- dfbase %>%
+    dplyr::slice_head(n = row_limit)
+}
 
 varsy <- names(dfbase)[1]
 
 # parallel cluster setup
-cores <- max(1, parallel::detectCores() - 1)
-cl <- parallel::makeCluster(cores)
-cl <- parallelly::autoStopCluster(cl)
+
+parallel_export_objects <- c(
+  "metric_otm",
+  "pst_res_class_multiclass",
+  "custom_rcaretFuncs",
+  "gbm_custom"
+)
+
+cl <- setup_parallel_backend(
+  use_parallel = use_parallel,
+  cores = cores,
+  packages = parallel_packages,
+  objects_to_export = parallel_export_objects
+)
 
 for (i in seq_along(models)) {
   
@@ -351,7 +359,7 @@ for (i in seq_along(models)) {
           .fns = as.factor
         )
       ) %>%
-      na.omit()
+      tidyr::drop_na()
     
     dyx_sel[[target_var]] <- droplevels(dyx_sel[[target_var]])
     class_levels <- levels(dyx_sel[[target_var]])
@@ -431,6 +439,7 @@ for (i in seq_along(models)) {
     ]
     
     if (length(cor_candidates) >= 2) {
+      
       mcor <- dyx_sel %>%
         dplyr::select(
           dplyr::all_of(cor_candidates)
@@ -445,7 +454,9 @@ for (i in seq_along(models)) {
         cutoff = cut_off_mc,
         names = TRUE
       )
+      
     } else {
+      
       fc <- character(0)
     }
     
@@ -470,18 +481,34 @@ for (i in seq_along(models)) {
     
     if (kfold) {
       
+      n_groups <- dplyr::n_distinct(
+        dyx_sel[[col_kfold]]
+      )
+      
+      rfe_fold_use <- min(
+        rfe_fold,
+        n_groups
+      )
+      
+      model_fold_use <- min(
+        model_fold,
+        n_groups
+      )
+      
       set.seed(nseed)
-      gkfold_rfe <- make_repeated_group_kfold(
+      
+      gkfold_rfe <- make_repeated_group_folds(
         group = dyx_sel[[col_kfold]],
-        k = rfe_fold,
+        k = rfe_fold_use,
         repeats = rfe_repeat,
         seed = nseed
       )
       
       set.seed(nseed)
-      gkfold_model <- make_repeated_group_kfold(
+      
+      gkfold_model <- make_repeated_group_folds(
         group = dyx_sel[[col_kfold]],
-        k = model_fold,
+        k = model_fold_use,
         repeats = model_repeat,
         seed = nseed
       )
@@ -496,6 +523,9 @@ for (i in seq_along(models)) {
       gkfold_rfe <- NULL
       gkfold_model <- NULL
       
+      rfe_fold_use <- rfe_fold
+      model_fold_use <- model_fold
+      
       if (has_kfold_col) {
         dyx_sel <- dyx_sel %>%
           dplyr::select(
@@ -506,8 +536,6 @@ for (i in seq_along(models)) {
     } # end if kfold
     
     fixed_predictors_present <- intersect(fixed_predictors_present, names(dyx_sel))
-    
-    registerDoParallel(cl)
     
     all_predictors_after_filter <- setdiff(
       names(dyx_sel),
@@ -537,38 +565,36 @@ for (i in seq_along(models)) {
           dplyr::all_of(c(target_var, rfe_candidate_predictors))
         )
       
-      rfe_size_current <- sort(
-        unique(
-          rfe_size[rfe_size <= length(rfe_candidate_predictors)]
-        )
+      rfe_size_current <- make_valid_rfe_sizes(
+        rfe_size = rfe_size,
+        n_predictors = length(rfe_candidate_predictors)
       )
       
-      if (length(rfe_size_current) == 0) {
-        rfe_size_current <- length(rfe_candidate_predictors)
-      }
-      
       set.seed(nseed)
-      rfe_ctrl <- rfeControl(
-        functions = custom_rcaretFuncs,
+      
+      rfe_ctrl <- make_rfe_control(
         method = "repeatedcv",
+        number = rfe_fold_use,
         repeats = rfe_repeat,
-        number = rfe_fold,
+        index = gkfold_rfe,
+        functions_object = custom_rcaretFuncs,
         verbose = FALSE,
-        index = if (kfold) gkfold_rfe else NULL,
-        allowParallel = TRUE
+        allow_parallel = allow_parallel_rfe
       )
       
       set.seed(nseed)
-      rfe_model_ctrl <- trainControl(
+      
+      rfe_model_ctrl <- make_train_control(
         method = "repeatedcv",
-        number = rfe_fold,
+        number = rfe_fold_use,
         repeats = rfe_repeat,
-        savePredictions = TRUE,
-        summaryFunction = pst_res_class_multiclass,
-        index = if (kfold) gkfold_rfe else NULL,
-        classProbs = class_probs,
-        allowParallel = TRUE
+        index = NULL,
+        summary_function = pst_res_class_multiclass,
+        save_predictions = TRUE,
+        allow_parallel = FALSE
       )
+      
+      rfe_model_ctrl$classProbs <- class_probs
       
       formu <- stats::reformulate(
         termlabels = rfe_candidate_predictors,
@@ -576,6 +602,7 @@ for (i in seq_along(models)) {
       )
       
       set.seed(nseed)
+      
       rfe_fit <- caret::rfe(
         form = formu,
         data = rfe_data,
@@ -764,16 +791,18 @@ for (i in seq_along(models)) {
     }
     
     set.seed(nseed)
-    model_ctrl <- trainControl(
+    
+    model_ctrl <- make_train_control(
       method = "repeatedcv",
-      number = model_fold,
+      number = model_fold_use,
       repeats = model_repeat,
-      savePredictions = TRUE,
-      index = if (kfold) gkfold_model else NULL,
-      summaryFunction = pst_res_class_multiclass,
-      classProbs = class_probs,
-      allowParallel = TRUE
+      index = gkfold_model,
+      summary_function = pst_res_class_multiclass,
+      save_predictions = TRUE,
+      allow_parallel = allow_parallel_model
     )
+    
+    model_ctrl$classProbs <- class_probs
     
     formu <- stats::reformulate(
       termlabels = predictor_names_selected,
@@ -781,7 +810,6 @@ for (i in seq_along(models)) {
     )
     
     set.seed(nseed)
-    registerDoParallel(cl)
     
     model_fit <- caret::train(
       form = formu,
@@ -1053,3 +1081,5 @@ for (i in seq_along(models)) {
   )
   
 } # end for i
+
+close_parallel_backend(cl)
