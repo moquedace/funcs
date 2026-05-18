@@ -491,3 +491,104 @@ make_rfe_control <- function(method, number, repeats = NULL, index = NULL,
     )
   }
 }
+
+      
+validate_class_metric_config <- function(metric_value, summary_function) {
+  
+  test_data <- data.frame(
+    obs = factor(
+      c("class_a", "class_a", "class_b", "class_b", "class_c", "class_c"),
+      levels = c("class_a", "class_b", "class_c")
+    ),
+    pred = factor(
+      c("class_a", "class_b", "class_b", "class_b", "class_c", "class_a"),
+      levels = c("class_a", "class_b", "class_c")
+    )
+  )
+  
+  metric_output <- summary_function(test_data)
+  
+  if (!is.numeric(metric_output)) {
+    stop("The classification summary function must return a numeric named vector.")
+  }
+  
+  if (is.null(names(metric_output))) {
+    stop("The classification summary function must return named metrics.")
+  }
+  
+  if (!metric_value %in% names(metric_output)) {
+    stop(
+      paste0(
+        "The selected metric '",
+        metric_value,
+        "' was not returned by the classification summary function. Available metrics: ",
+        paste(names(metric_output), collapse = ", ")
+      )
+    )
+  }
+  
+  invisible(TRUE)
+}
+
+
+make_ccaret_funcs <- function(metric_value, summary_function) {
+  
+  force(metric_value)
+  force(summary_function)
+  
+  validate_class_metric_config(
+    metric_value = metric_value,
+    summary_function = summary_function
+  )
+  
+  funcs <- caret::caretFuncs
+  
+  funcs$summary <- summary_function
+  
+  funcs$fit <- function(x, y, first, last, ...) {
+    
+    if (!is.factor(y)) {
+      stop(
+        paste0(
+          "RFE received a non-factor response inside classification fit. Class: ",
+          paste(class(y), collapse = ", ")
+        )
+      )
+    }
+    
+    dots <- list(...)
+    
+    dots$metric <- NULL
+    
+    args <- c(
+      list(
+        x = x,
+        y = y,
+        metric = metric_value
+      ),
+      dots
+    )
+    
+    do.call(
+      what = caret::train,
+      args = args
+    )
+  }
+  
+  funcs$pred <- function(object, x) {
+    
+    pred <- predict(object, x)
+    
+    if (is.matrix(pred)) {
+      pred <- pred[, 1]
+    }
+    
+    if (is.data.frame(pred)) {
+      pred <- pred[[1]]
+    }
+    
+    pred
+  }
+  
+  funcs
+}
