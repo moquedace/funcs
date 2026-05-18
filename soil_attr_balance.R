@@ -1,4 +1,8 @@
-# soil_attr_balance.R
+soil_attr_balance <- local({
+  
+  soil_attr_balance_load_packages <- function() {
+
+    # soil_attr_balance.R
 #
 # Generic function to evaluate completeness and attribute-combination trade-offs
 # in soil databases.
@@ -34,10 +38,6 @@
 #   selection_priority = "richness_first",
 #   return_selected = TRUE
 # )
-
-soil_attr_balance <- local({
-  
-  soil_attr_balance_load_packages <- function() {
     
     pkg <- c(
       "dplyr", "tidyr", "purrr", "stringr", "tibble", "janitor",
