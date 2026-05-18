@@ -1,43 +1,6 @@
 soil_attr_balance <- local({
   
   soil_attr_balance_load_packages <- function() {
-
-    # soil_attr_balance.R
-#
-# Generic function to evaluate completeness and attribute-combination trade-offs
-# in soil databases.
-#
-# The function identifies which combinations of selected soil attributes preserve
-# the highest number of complete observations while allowing optional diagnostics
-# by sampling unit, depth class, valid value ranges, attribute weights,
-# marginal losses, bottleneck attributes, and missingness correlation.
-#
-# This function assumes that the input database has already been cleaned and
-# harmonized. It does not read files, write files, convert units, derive new
-# soil variables, perform spatial filtering, or apply project-specific
-# pedological rules.
-#
-# Recommended documentation:
-#
-# See soil_attr_balance_documentation.md for full argument descriptions,
-# interpretation guidelines, and examples.
-#
-# Typical use:
-#
-# source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
-#
-# res <- soil_attr_balance(
-#   data = soil_data,
-#   attrs = soil_attributes,
-#   unit_cols = "coord_id",
-#   depth_cols = c("upper_depth_cm", "lower_depth_cm"),
-#   required_attrs = "c_gkg",
-#   target_attrs = "c_gkg",
-#   min_pct = 0.50,
-#   ranking_metric = "weighted_score",
-#   selection_priority = "richness_first",
-#   return_selected = TRUE
-# )
     
     pkg <- c(
       "dplyr", "tidyr", "purrr", "stringr", "tibble", "janitor",
@@ -85,6 +48,31 @@ soil_attr_balance <- local({
         )
       )
     }
+  }
+  
+  soil_load_graph_packages <- function() {
+    
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+      
+      if (!exists("install_load_pkg", mode = "function")) {
+        try(
+          source(
+            "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+          ),
+          silent = TRUE
+        )
+      }
+      
+      if (exists("install_load_pkg", mode = "function")) {
+        invisible(
+          install_load_pkg("ggplot2")
+        )
+      } else {
+        stop("Package ggplot2 is required when graphs = TRUE.")
+      }
+    }
+    
+    invisible(TRUE)
   }
   
   soil_format_elapsed_time <- function(time_start, time_end = Sys.time(), digits = 2) {
@@ -1751,6 +1739,252 @@ soil_attr_balance <- local({
     )
   }
   
+  soil_make_graphs <- function(
+      attr_summary,
+      row_attr_summary,
+      best_combo_by_size,
+      selection_candidates,
+      marginal_loss_summary = NULL,
+      attribute_bottleneck_summary = NULL,
+      missingness_correlation_long = NULL,
+      depth_completeness_summary = NULL,
+      unit_completeness_summary = NULL,
+      graph_top_n = 30
+  ) {
+    
+    soil_load_graph_packages()
+    
+    graph_results <- list()
+    
+    graph_results$attribute_completeness <- attr_summary %>%
+      dplyr::mutate(
+        attribute = stats::reorder(attribute, pct_non_na)
+      ) %>%
+      ggplot2::ggplot(
+        ggplot2::aes(
+          x = attribute,
+          y = pct_non_na
+        )
+      ) +
+      ggplot2::geom_col() +
+      ggplot2::coord_flip() +
+      ggplot2::labs(
+        x = "Attribute",
+        y = "Proportion of non-missing rows",
+        title = "Attribute completeness"
+      ) +
+      ggplot2::theme_minimal()
+    
+    graph_results$row_attribute_availability <- row_attr_summary %>%
+      ggplot2::ggplot(
+        ggplot2::aes(
+          x = n_attr_available,
+          y = n_rows
+        )
+      ) +
+      ggplot2::geom_col() +
+      ggplot2::labs(
+        x = "Number of available attributes per row",
+        y = "Number of rows",
+        title = "Row-level attribute availability"
+      ) +
+      ggplot2::theme_minimal()
+    
+    graph_results$best_combo_by_size <- best_combo_by_size %>%
+      ggplot2::ggplot(
+        ggplot2::aes(
+          x = n_attributes,
+          y = n_rows_complete
+        )
+      ) +
+      ggplot2::geom_line() +
+      ggplot2::geom_point() +
+      ggplot2::labs(
+        x = "Number of attributes",
+        y = "Complete rows",
+        title = "Best combination by number of attributes"
+      ) +
+      ggplot2::theme_minimal()
+    
+    if (!is.null(marginal_loss_summary)) {
+      
+      graph_results$marginal_loss <- marginal_loss_summary %>%
+        dplyr::filter(
+          !is.na(marginal_rows_lost)
+        ) %>%
+        ggplot2::ggplot(
+          ggplot2::aes(
+            x = n_attributes,
+            y = marginal_rows_lost
+          )
+        ) +
+        ggplot2::geom_col() +
+        ggplot2::labs(
+          x = "Number of attributes",
+          y = "Marginal rows lost",
+          title = "Marginal loss when adding attributes"
+        ) +
+        ggplot2::theme_minimal()
+    }
+    
+    if (!is.null(attribute_bottleneck_summary)) {
+      
+      graph_results$bottleneck_intensity <- attribute_bottleneck_summary %>%
+        dplyr::filter(
+          !is.na(bottleneck_intensity)
+        ) %>%
+        dplyr::slice_max(
+          order_by = bottleneck_intensity,
+          n = graph_top_n,
+          with_ties = FALSE
+        ) %>%
+        dplyr::mutate(
+          attribute = stats::reorder(attribute, bottleneck_intensity)
+        ) %>%
+        ggplot2::ggplot(
+          ggplot2::aes(
+            x = attribute,
+            y = bottleneck_intensity
+          )
+        ) +
+        ggplot2::geom_col() +
+        ggplot2::coord_flip() +
+        ggplot2::labs(
+          x = "Attribute",
+          y = "Bottleneck intensity",
+          title = "Attribute bottleneck intensity"
+        ) +
+        ggplot2::theme_minimal()
+    }
+    
+    if (!is.null(selection_candidates) && nrow(selection_candidates) > 0) {
+      
+      graph_results$selection_candidates <- selection_candidates %>%
+        dplyr::slice_head(n = graph_top_n) %>%
+        ggplot2::ggplot(
+          ggplot2::aes(
+            x = n_attributes,
+            y = n_rows_complete
+          )
+        ) +
+        ggplot2::geom_point(
+          ggplot2::aes(
+            size = weighted_score
+          ),
+          alpha = 0.7
+        ) +
+        ggplot2::labs(
+          x = "Number of attributes",
+          y = "Complete rows",
+          size = "Weighted score",
+          title = "Top selection candidates"
+        ) +
+        ggplot2::theme_minimal()
+    }
+    
+    if (!is.null(missingness_correlation_long)) {
+      
+      graph_results$missingness_correlation <- missingness_correlation_long %>%
+        dplyr::filter(
+          !is.na(missingness_correlation)
+        ) %>%
+        ggplot2::ggplot(
+          ggplot2::aes(
+            x = attribute_1,
+            y = attribute_2,
+            fill = missingness_correlation
+          )
+        ) +
+        ggplot2::geom_tile() +
+        ggplot2::coord_equal() +
+        ggplot2::labs(
+          x = "Attribute",
+          y = "Attribute",
+          fill = "Correlation",
+          title = "Missingness correlation"
+        ) +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(
+          axis.text.x = ggplot2::element_text(
+            angle = 45,
+            hjust = 1
+          )
+        )
+    }
+    
+    if (
+      !is.null(depth_completeness_summary) &&
+        !is.null(selection_candidates) &&
+        nrow(selection_candidates) > 0
+    ) {
+      
+      selected_combo_id <- selection_candidates$combo_id[[1]]
+      
+      depth_selected <- depth_completeness_summary %>%
+        dplyr::filter(
+          combo_id == selected_combo_id
+        )
+      
+      if (nrow(depth_selected) > 0) {
+        
+        graph_results$depth_selected_candidate <- depth_selected %>%
+          ggplot2::ggplot(
+            ggplot2::aes(
+              x = depth_class,
+              y = n_rows_complete
+            )
+          ) +
+          ggplot2::geom_col() +
+          ggplot2::labs(
+            x = "Depth class",
+            y = "Complete rows",
+            title = "Depth coverage of selected candidate"
+          ) +
+          ggplot2::theme_minimal() +
+          ggplot2::theme(
+            axis.text.x = ggplot2::element_text(
+              angle = 45,
+              hjust = 1
+            )
+          )
+      }
+    }
+    
+    if (
+      !is.null(unit_completeness_summary) &&
+        !is.null(selection_candidates) &&
+        nrow(selection_candidates) > 0
+    ) {
+      
+      selected_combo_id <- selection_candidates$combo_id[[1]]
+      
+      unit_selected <- unit_completeness_summary %>%
+        dplyr::filter(
+          combo_id == selected_combo_id
+        )
+      
+      if (nrow(unit_selected) > 0) {
+        
+        graph_results$unit_selected_candidate <- unit_selected %>%
+          ggplot2::ggplot(
+            ggplot2::aes(
+              x = unit_col,
+              y = pct_units_complete
+            )
+          ) +
+          ggplot2::geom_col() +
+          ggplot2::labs(
+            x = "Unit column",
+            y = "Proportion of complete units",
+            title = "Unit coverage of selected candidate"
+          ) +
+          ggplot2::theme_minimal()
+      }
+    }
+    
+    graph_results
+  }
+  
   function(
       data,
       attrs,
@@ -1778,6 +2012,8 @@ soil_attr_balance <- local({
       compute_representativeness = TRUE,
       return_selected = FALSE,
       selected_attrs = NULL,
+      graphs = FALSE,
+      graph_top_n = 30,
       parallel = TRUE,
       n_workers = NULL,
       chunk_size = 500,
@@ -1998,7 +2234,10 @@ soil_attr_balance <- local({
       best_combo_by_size %>%
         dplyr::mutate(diagnostic_source = "best_combo_by_size"),
       pareto_combo %>%
-        dplyr::mutate(diagnostic_source = "pareto_combo")
+        dplyr::mutate(diagnostic_source = "pareto_combo"),
+      selection_candidates %>%
+        dplyr::slice_head(n = 1) %>%
+        dplyr::mutate(diagnostic_source = "selected_candidate")
     ) %>%
       dplyr::distinct(
         combo_id,
@@ -2081,7 +2320,9 @@ soil_attr_balance <- local({
         depth_info$depth_method
       ),
       use_valid_ranges_for_combinations = use_valid_ranges_for_combinations,
-      compute_representativeness = compute_representativeness
+      compute_representativeness = compute_representativeness,
+      graphs = graphs,
+      graph_top_n = graph_top_n
     )
     
     decision_notes <- soil_make_decision_notes(
@@ -2101,6 +2342,23 @@ soil_attr_balance <- local({
       selection_priority = selection_priority
     )
     
+    graph_results <- NULL
+    
+    if (graphs) {
+      graph_results <- soil_make_graphs(
+        attr_summary = attr_summary,
+        row_attr_summary = row_attr_summary,
+        best_combo_by_size = best_combo_by_size,
+        selection_candidates = selection_candidates,
+        marginal_loss_summary = marginal_loss_summary,
+        attribute_bottleneck_summary = attribute_bottleneck_summary,
+        missingness_correlation_long = missingness_results$missingness_correlation_long,
+        depth_completeness_summary = depth_completeness_summary,
+        unit_completeness_summary = unit_completeness_summary,
+        graph_top_n = graph_top_n
+      )
+    }
+    
     list(
       input_summary = input_summary,
       attr_summary = attr_summary,
@@ -2119,6 +2377,7 @@ soil_attr_balance <- local({
       target_combo_summary = target_combo_summary,
       selected_summary = selected_results$selected_summary,
       selected_data = selected_results$selected_data,
+      graphs = graph_results,
       decision_notes = decision_notes
     )
   }
