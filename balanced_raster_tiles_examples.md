@@ -1,5 +1,7 @@
-balanced_raster_tiles examples
-Example 1. Basic use with a raster already loaded in R
+# balanced_raster_tiles examples
+
+## Example 1. Basic use with a raster already loaded in R
+
 ```r
 source(
   "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
@@ -42,7 +44,9 @@ tile_result <- balanced_raster_tiles(
 tile_result$global_summary %>%
   print(width = Inf)
 ```
-Example 2. Inspect the most imbalanced tiles
+
+## Example 2. Inspect the most imbalanced tiles
+
 ```r
 tile_result$tile_summary %>%
   dplyr::arrange(
@@ -61,7 +65,9 @@ tile_result$tile_summary %>%
   ) %>%
   print(n = 20, width = Inf)
 ```
-Example 3. Inspect the lightest and heaviest tiles
+
+## Example 3. Inspect the lightest and heaviest tiles
+
 ```r
 tile_result$tile_summary %>%
   dplyr::arrange(n_valid_pixels) %>%
@@ -89,7 +95,9 @@ tile_result$tile_summary %>%
   ) %>%
   print(n = 20, width = Inf)
 ```
-Example 4. Use a raster file path directly
+
+## Example 4. Use a raster file path directly
+
 ```r
 source(
   "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
@@ -108,8 +116,11 @@ tile_result <- balanced_raster_tiles(
 tile_result$global_summary %>%
   print(width = Inf)
 ```
-Example 5. Use a binary mask as the valid domain
+
+## Example 5. Use a binary mask as the valid domain
+
 Use this when the base raster contains `1` for valid cells and `0` or `NA` elsewhere.
+
 ```r
 source(
   "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
@@ -130,7 +141,9 @@ tile_result <- balanced_raster_tiles(
   overwrite = TRUE
 )
 ```
-Example 6. Compare different layouts
+
+## Example 6. Compare different layouts
+
 ```r
 source(
   "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
@@ -215,7 +228,9 @@ readr::write_csv2(
   file = "output/layout_diagnostics.csv"
 )
 ```
-Example 7. Crop a stack of rasters using the generated tiles
+
+## Example 7. Crop a stack of rasters using the generated tiles
+
 ```r
 source(
   "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
@@ -326,7 +341,9 @@ for (tile_i in seq_len(nrow(tile_result$tiles))) {
   }
 }
 ```
-Example 8. Read the saved tile vector later
+
+## Example 8. Read the saved tile vector later
+
 ```r
 tiles <- sf::st_read(
   "output/final_10x10/balanced_tiles_10x10.gpkg",
