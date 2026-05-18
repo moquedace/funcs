@@ -1,4 +1,100 @@
 soil_attr_balance <- local({
+
+  # soil_attr_balance.R
+#
+# Generic function to evaluate completeness and attribute-combination trade-offs
+# in soil databases.
+#
+# The function identifies which combinations of selected soil attributes preserve
+# the highest number of complete observations while allowing optional diagnostics
+# by sampling unit, depth class, valid value ranges, attribute weights,
+# marginal losses, bottleneck attributes, missingness correlation, and optional
+# graphical outputs.
+#
+# This function assumes that the input database has already been cleaned and
+# harmonized. It does not read files, write files, convert units, derive new
+# soil variables, perform spatial filtering, or apply project-specific
+# pedological rules.
+#
+# When graphs = TRUE, the function returns a list of ggplot objects in the
+# output element graphs. Graphs are created only at the end of the function and
+# do not affect the combination analysis, ranking, selected dataset, or any
+# tabular diagnostic. The package ggplot2 is required only when graphs = TRUE.
+#
+# Main outputs include:
+#
+# input_summary
+# attr_summary
+# row_attr_summary
+# combo_summary
+# best_combo_by_size
+# top_combo_by_size
+# selection_candidates
+# pareto_combo
+# marginal_loss_summary
+# attribute_bottleneck_summary
+# missingness_correlation
+# missingness_correlation_long
+# depth_completeness_summary
+# unit_completeness_summary
+# target_combo_summary
+# selected_summary
+# selected_data
+# graphs
+# decision_notes
+#
+# Recommended documentation:
+#
+# See soil_attr_balance_documentation.md for full argument descriptions,
+# interpretation guidelines, and examples.
+#
+# See soil_attr_balance_examples.md for practical use cases.
+#
+# Typical use without graphs:
+#
+# source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+#
+# res <- soil_attr_balance(
+#   data = soil_data,
+#   attrs = soil_attributes,
+#   unit_cols = "coord_id",
+#   depth_cols = c("upper_depth_cm", "lower_depth_cm"),
+#   required_attrs = "c_gkg",
+#   target_attrs = "c_gkg",
+#   min_pct = 0.50,
+#   ranking_metric = "weighted_score",
+#   selection_priority = "richness_first",
+#   return_selected = TRUE
+# )
+#
+# Typical use with graphs:
+#
+# res_graphs <- soil_attr_balance(
+#   data = soil_data,
+#   attrs = soil_attributes,
+#   unit_cols = "coord_id",
+#   depth_cols = c("upper_depth_cm", "lower_depth_cm"),
+#   required_attrs = "c_gkg",
+#   target_attrs = "c_gkg",
+#   min_pct = 0.50,
+#   ranking_metric = "weighted_score",
+#   selection_priority = "richness_first",
+#   return_selected = TRUE,
+#   graphs = TRUE,
+#   graph_top_n = 30
+# )
+#
+# Example graph calls:
+#
+# res_graphs$graphs$attribute_completeness
+# res_graphs$graphs$row_attribute_availability
+# res_graphs$graphs$best_combo_by_size
+# res_graphs$graphs$marginal_loss
+# res_graphs$graphs$bottleneck_intensity
+# res_graphs$graphs$selection_candidates
+# res_graphs$graphs$missingness_correlation
+# res_graphs$graphs$depth_selected_candidate
+# res_graphs$graphs$unit_selected_candidate
   
   soil_attr_balance_load_packages <- function() {
     
