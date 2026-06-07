@@ -1,0 +1,56 @@
+<svg width="1400" height="420" viewBox="0 0 1400 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">funcs R toolbox banner</title>
+  <desc id="desc">A technical scientific banner showing modular R functions for soil mapping, raster processing, modelling, and prediction.</desc>
+  <rect width="1400" height="420" rx="26" fill="#0c1117"/>
+  <rect x="1" y="1" width="1398" height="418" rx="25" stroke="#7fb7a3" stroke-opacity="0.65" stroke-width="2"/>
+
+  <g opacity="0.16">
+    <path d="M0 320C95 286 163 307 248 272C333 237 366 172 456 178C546 184 586 245 688 229C790 213 827 145 925 151C1023 157 1062 225 1162 232C1262 239 1318 198 1400 207" stroke="#7fb7a3" stroke-width="3"/>
+    <path d="M0 362C108 332 170 349 265 322C360 295 391 232 470 234C549 236 601 286 704 274C807 262 846 202 933 207C1020 212 1073 276 1170 283C1267 290 1325 250 1400 258" stroke="#c9d8e6" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(910 54)">
+    <rect x="0" y="0" width="330" height="252" rx="20" fill="#101b26" stroke="#2c4153"/>
+    <rect x="24" y="28" width="86" height="38" rx="9" fill="#16283a" stroke="#31516a"/>
+    <text x="47" y="53" fill="#dce9f2" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15" font-weight="800">R</text>
+    <rect x="122" y="28" width="86" height="38" rx="9" fill="#16283a" stroke="#31516a"/>
+    <text x="141" y="53" fill="#dce9f2" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15" font-weight="800">terra</text>
+    <rect x="220" y="28" width="86" height="38" rx="9" fill="#16283a" stroke="#31516a"/>
+    <text x="248" y="53" fill="#dce9f2" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15" font-weight="800">sf</text>
+
+    <path d="M48 110H270" stroke="#2c4153" stroke-width="2"/>
+    <path d="M72 110V178" stroke="#2c4153" stroke-width="2"/>
+    <path d="M164 110V178" stroke="#2c4153" stroke-width="2"/>
+    <path d="M256 110V178" stroke="#2c4153" stroke-width="2"/>
+    <circle cx="72" cy="110" r="9" fill="#7fb7a3"/>
+    <circle cx="164" cy="110" r="9" fill="#7fb7a3"/>
+    <circle cx="256" cy="110" r="9" fill="#7fb7a3"/>
+    <rect x="26" y="178" width="92" height="34" rx="8" fill="#243447"/>
+    <rect x="118" y="178" width="92" height="34" rx="8" fill="#3d6f5d"/>
+    <rect x="210" y="178" width="92" height="34" rx="8" fill="#7a5b2e"/>
+  </g>
+
+  <g transform="translate(78 70)">
+    <text x="0" y="0" fill="#7fb7a3" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="17" font-weight="700" letter-spacing="3">R FUNCTIONS / DSM / RASTER / MODELLING</text>
+    <text x="0" y="66" fill="#f7fbfd" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="58" font-weight="800">funcs</text>
+    <text x="0" y="114" fill="#d8e4ed" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="23" font-weight="500">Standalone utilities for geospatial research workflows in R.</text>
+  </g>
+
+  <g transform="translate(78 236)" font-family="Segoe UI, Inter, Arial, sans-serif">
+    <rect x="0" y="0" width="138" height="42" rx="21" fill="#111d27" stroke="#2c4153"/>
+    <text x="27" y="27" fill="#f7fbfd" font-size="16" font-weight="700">soil data</text>
+    <rect x="154" y="0" width="122" height="42" rx="21" fill="#111d27" stroke="#2c4153"/>
+    <text x="181" y="27" fill="#f7fbfd" font-size="16" font-weight="700">rasters</text>
+    <rect x="292" y="0" width="126" height="42" rx="21" fill="#111d27" stroke="#2c4153"/>
+    <text x="322" y="27" fill="#f7fbfd" font-size="16" font-weight="700">models</text>
+    <rect x="434" y="0" width="142" height="42" rx="21" fill="#111d27" stroke="#2c4153"/>
+    <text x="462" y="27" fill="#f7fbfd" font-size="16" font-weight="700">prediction</text>
+    <rect x="592" y="0" width="142" height="42" rx="21" fill="#111d27" stroke="#2c4153"/>
+    <text x="620" y="27" fill="#f7fbfd" font-size="16" font-weight="700">validation</text>
+  </g>
+
+  <g transform="translate(80 330)">
+    <rect x="0" y="0" width="610" height="1" fill="#2c4153"/>
+    <text x="0" y="34" fill="#afc5d3" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15" font-weight="600">A lightweight research toolbox: source the function you need, adapt it, and keep the workflow transparent.</text>
+  </g>
+</svg>

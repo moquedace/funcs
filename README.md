@@ -1,111 +1,134 @@
-# funcs
+<p align="center">
+  <img src="img/readme_banner.svg" alt="funcs banner: R utilities for digital soil mapping, raster workflows, and spatial modelling" width="920">
+</p>
 
-Repository of R functions and computational routines developed to support reproducible workflows in soil science, digital soil mapping, environmental modelling, raster processing, machine learning, model evaluation, and spatial prediction.
+<h1 align="center">funcs</h1>
 
-## Author
+<p align="center">
+  <strong>A practical R toolbox for digital soil mapping, raster processing, environmental covariates, machine learning, and spatial prediction.</strong>
+</p>
 
-Cássio Marques Moquedace
+<p align="center">
+  <img src="https://img.shields.io/badge/language-R-276DC3?style=for-the-badge&logo=r&logoColor=white">
+  <img src="https://img.shields.io/badge/domain-digital%20soil%20mapping-3d6f5d?style=for-the-badge">
+  <img src="https://img.shields.io/badge/raster-terra%20%7C%20sf-365f7f?style=for-the-badge">
+  <img src="https://img.shields.io/badge/modelling-caret%20%7C%20ML-7a5b2e?style=for-the-badge">
+</p>
 
-## Description
+<p align="center">
+  <img src="https://img.shields.io/badge/status-working%20toolbox-56606d?style=flat-square">
+  <img src="https://img.shields.io/badge/interface-source%20scripts-455b70?style=flat-square">
+  <img src="https://img.shields.io/badge/license-MIT-243447?style=flat-square">
+</p>
 
-This repository contains R scripts and functions designed for geospatial data processing, environmental covariate preparation, raster manipulation, soil data analysis, predictive modelling, model evaluation, and spatial prediction.
+<p align="center">
+  <a href="#what-this-is">What This Is</a> |
+  <a href="#highlights">Highlights</a> |
+  <a href="#quick-start">Quick Start</a> |
+  <a href="#function-map">Function Map</a> |
+  <a href="#citation">Citation</a>
+</p>
 
-The routines were developed in the context of scientific research involving soil science, digital soil mapping, soil organic carbon modelling, soil spectroscopy, environmental covariates, and large-scale spatial analysis.
+## What This Is
 
-## Main topics
+`funcs` is a personal, research-oriented collection of R functions and workflow
+scripts developed by Cassio Marques Moquedace to support reproducible work in
+soil science, digital soil mapping, environmental modelling, raster processing,
+machine learning, model evaluation, and spatial prediction.
 
-- Soil science
-- Digital soil mapping
-- Environmental modelling
-- Raster processing
-- Spatial prediction
-- Machine learning
-- Model evaluation
-- SoilGrids access
-- Reproducible workflows in R
+This repository is intentionally lightweight: functions are kept as standalone
+`.R` files that can be sourced directly into analysis projects. It is not
+currently structured as a formal R package.
 
-## Main groups of scripts
+## Highlights
 
-### Geospatial processing
+<table>
+  <tr>
+    <td width="25%"><strong>Soil data diagnosis</strong><br>Evaluate completeness, bottlenecks, depth coverage, and attribute trade-offs in harmonized soil databases.</td>
+    <td width="25%"><strong>Raster operations</strong><br>Crop, mask, project, tile, resample, write classified rasters, and prepare large spatial domains.</td>
+    <td width="25%"><strong>Model workflows</strong><br>Regression and classification templates with repeated runs, LOOCV, grouped validation, RFE, and custom metrics.</td>
+    <td width="25%"><strong>Spatial prediction</strong><br>Utilities for quantile random forest prediction, probability rasters, uncertainty outputs, and model diagnostics.</td>
+  </tr>
+</table>
 
-Scripts for raster and vector processing, including reprojection, cropping, masking, resampling, tiling, focal operations, and raster writing.
+## Quick Start
 
-Examples:
+Source only the function you need:
 
-- `crop_mask_project.R`
-- `change_resolution.R`
-- `focal_resample.R`
-- `tile_raster.R`
-- `tile_raster_path.R`
-- `writeRaster_factor.R`
+```r
+source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
 
-### Soil and environmental covariates
+res <- soil_attr_balance(
+  data = soil_data,
+  attrs = soil_attributes,
+  unit_cols = "coord_id",
+  depth_cols = c("upper_depth_cm", "lower_depth_cm"),
+  required_attrs = "c_gkg",
+  target_attrs = "c_gkg",
+  min_pct = 0.50,
+  ranking_metric = "weighted_score",
+  return_selected = TRUE
+)
+```
 
-Scripts for accessing, preparing, and processing soil and environmental predictors.
+For balanced raster processing:
 
-Examples:
+```r
+source("https://raw.githubusercontent.com/moquedace/funcs/main/balanced_raster_tiles.R")
 
-- `soilgrids_raster.R`
-- `download_febr_soildata.R`
-- `process_landsat_indices.R`
-- `calc_index_sentinel.R`
-- `morphometry_saga.R`
+tile_result <- balanced_raster_tiles(
+  base_raster = terra::rast("path/to/base_raster.tif"),
+  n_tile_rows = 10,
+  n_tile_cols = 10,
+  output_dir = "output/balanced_tiles",
+  diagnostic_plots = TRUE
+)
+```
 
-### Predictive modelling
+## Function Map
 
-Scripts for regression, classification, repeated runs, cross-validation, feature selection, performance assessment, and model prediction.
+| Area | Main files |
+| --- | --- |
+| Soil database diagnostics | `soil_attr_balance.R`, `soil_attr_balance_documentation.md`, `soil_attr_balance_examples.md` |
+| Balanced raster tiling | `balanced_raster_tiles.R`, `balanced_raster_tiles_documentation.md`, `balanced_raster_tiles_examples.md`, `check_tiles.R` |
+| Raster processing | `crop_mask_project.R`, `standardize_crop_mask_raster.R`, `change_resolution.R`, `focal_resample.R`, `tile_raster.R`, `tile_raster_path.R`, `writeRaster_factor.R`, `rst_class_by_value.R` |
+| Environmental covariates | `soilgrids_raster.R`, `download_febr_soildata.R`, `process_landsat_indices.R`, `calc_index_sentinel.R`, `morphometry_saga.R` |
+| Regression modelling | `regression_modeling_single_run.R`, `regression_modeling_repeated_runs.R`, `regression_modeling_loocv.R`, `regression_modeling_leave_one_group_out.R` |
+| Classification modelling | `classification_modeling_single_run.R`, `classification_modeling_repeated_runs.R`, `classification_modeling_loocv.R`, `classification_modeling_leave_one_group_out.R` |
+| Prediction writers | `predict_qrf_raster.R`, `pred_writer_qrf_raster.R`, `pred_writer_raster_prob_raw.R`, `pred_writer_raster_prob_raw_resample.R` |
+| Model evaluation | `pst_res_mqi.R`, `pst_res_class.R`, `pst_res_class_multiclass.R`, `calcular_metricas_raster.R`, `partial_dependence.R`, `aoa_meyer.R`, `explain_future.R` |
+| Data preparation | `remove_outliers.R`, `points_to_class.R`, `spl.R`, `bivariate_map.R`, `app_vect.R` |
+| Utilities | `install_load_pkg.R`, `copy_with_robocopy.R`, `gcs_download.R`, `gcs_upload.R`, `gbm_custom.R`, `caret_rfe_functions.R` |
 
-Examples:
+## Recommended Use
 
-- `regression_modeling_single_run.R`
-- `regression_modeling_repeated_runs.R`
-- `regression_modeling_loocv.R`
-- `classification_modeling_single_run.R`
-- `classification_modeling_repeated_runs.R`
-- `classification_modeling_loocv.R`
-- `predict_qrf_raster.R`
-- `pred_writer_qrf_raster.R`
-- `pred_writer_raster_prob_raw.R`
+1. Read the relevant `.md` documentation when available.
+2. Source the specific `.R` file needed for your workflow.
+3. Keep project-specific paths, input data, and output folders in your own
+   analysis repository.
+4. Check package dependencies inside each function or workflow before running.
 
-### Model evaluation and auxiliary functions
+## Repository Philosophy
 
-Functions for performance metrics, outlier removal, partial dependence analysis, area of applicability, and class handling.
+This repository favors practical reuse over package ceremony. Many routines were
+created inside research projects and later generalized when they became useful
+across multiple workflows.
 
-Examples:
+The main design goal is to make recurring geospatial and modelling tasks easier
+to inspect, adapt, and reuse.
 
-- `pst_res_mqi.R`
-- `pst_res_class.R`
-- `pst_res_class_multiclass.R`
-- `remove_outliers.R`
-- `partial_dependence.R`
-- `aoa_meyer.R`
-- `rst_class_by_value.R`
+## Citation
 
-### Cloud and file management
+If this repository supports your work, cite it as:
 
-Auxiliary routines for cloud storage, file handling, and package management.
+```text
+Moquedace, C. M. (2026). funcs: R functions and computational routines for
+digital soil mapping, raster processing, environmental modelling, and spatial
+prediction. GitHub repository. https://github.com/moquedace/funcs
+```
 
-Examples:
-
-- `gcs_download.R`
-- `gcs_upload.R`
-- `copy_with_robocopy.R`
-- `install_load_pkg.R`
-
-## Recommended citation
-
-Moquedace, C. M. (2026). funcs: R functions and computational routines for geospatial processing, soil modelling, and spatial prediction. GitHub repository.
-
-A DOI will be provided after archival release through Zenodo.
+Machine-readable citation metadata is available in [`CITATION.cff`](CITATION.cff).
 
 ## License
 
-This repository is made available under the MIT License.
-
-Copyright (c) 2026 Cássio Marques Moquedace.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the software, and to permit persons to whom the software is furnished to do so, provided that the following conditions are met:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the software.
-
-This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the author be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or the use or other dealings in the software.
+This repository is made available under the MIT License. See [`LICENSE`](LICENSE).

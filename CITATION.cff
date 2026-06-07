@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below."
+title: "funcs: R functions and computational routines for digital soil mapping, raster processing, environmental modelling, and spatial prediction"
+authors:
+  - family-names: "Moquedace"
+    given-names: "Cassio Marques"
+year: 2026
+repository-code: "https://github.com/moquedace/funcs"
+license: "MIT"
