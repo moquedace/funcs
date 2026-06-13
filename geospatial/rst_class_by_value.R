@@ -1,4 +1,4 @@
-rst_class_by_value <- function(
+﻿rst_class_by_value <- function(
     rst, custom_crs = NULL, plot_map = TRUE,
     use_abs = TRUE, which_func = "max"
 ) {
@@ -6,7 +6,7 @@ rst_class_by_value <- function(
   start_time <- Sys.time()
   message("Starting function rst_class_by_value...")
   
-  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
   
   pkg <- c(
     "dplyr", "terra", "stringr"

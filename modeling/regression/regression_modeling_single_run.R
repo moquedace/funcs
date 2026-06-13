@@ -1,5 +1,5 @@
-source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+﻿source(
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
 )
 
 pkg <- c(
@@ -34,11 +34,11 @@ setwd(path_raiz)
 # source functions
 
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/pst_res_mqi.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/prediction/pst_res_mqi.R"
 )
 
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/caret_rfe_functions.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/modeling/helpers/caret_rfe_functions.R"
 )
 
 # parameterization

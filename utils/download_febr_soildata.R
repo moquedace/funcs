@@ -1,4 +1,4 @@
-ensure_febr_downloader_packages <- function() {
+﻿ensure_febr_downloader_packages <- function() {
   if (
     exists(
       ".febr_downloader_packages_loaded",
@@ -21,7 +21,7 @@ if (!require(remotes)) {
 remotes::install_github(repo = "laboratorio-de-pedometria/febr-package")
   
   source(
-    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
   )
   
   pkg <- c(

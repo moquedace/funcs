@@ -1,8 +1,8 @@
-partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
+﻿partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
                                lci = 0.25, uci = 0.75, delta = FALSE,
                                ncores = detectCores() - 1) {
   
-  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
   
   pkg <- c("dplyr", "caret", "rfUtilities", "future.apply",
                          "quantregForest", "tidyr", "stringr", "future")
@@ -48,7 +48,7 @@ partial_dependence <- function(model, fullvar = TRUE, xname = NULL,
     
     results <- future_lapply(1:length(temp), function(i) {
       
-      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
   
   pkg <- c("dplyr", "caret", "rfUtilities", "future.apply",
                          "quantregForest", "tidyr", "stringr", "future")

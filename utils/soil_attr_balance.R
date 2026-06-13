@@ -1,4 +1,4 @@
-soil_attr_balance <- local({
+﻿soil_attr_balance <- local({
 
   # soil_attr_balance.R
 #
@@ -52,7 +52,7 @@ soil_attr_balance <- local({
 #
 # Typical use without graphs:
 #
-# source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+# source("https://raw.githubusercontent.com/moquedace/funcs/main/utils/soil_attr_balance.R")
 #
 # res <- soil_attr_balance(
 #   data = soil_data,
@@ -106,7 +106,7 @@ soil_attr_balance <- local({
     if (!exists("install_load_pkg", mode = "function")) {
       try(
         source(
-          "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+          "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
         ),
         silent = TRUE
       )
@@ -153,7 +153,7 @@ soil_attr_balance <- local({
       if (!exists("install_load_pkg", mode = "function")) {
         try(
           source(
-            "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+            "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
           ),
           silent = TRUE
         )
