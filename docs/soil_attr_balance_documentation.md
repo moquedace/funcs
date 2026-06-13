@@ -1,4 +1,4 @@
-# soil_attr_balance
+﻿# soil_attr_balance
 
 `soil_attr_balance()` is a generic R function designed to evaluate completeness and attribute-combination trade-offs in soil databases.
 
@@ -75,7 +75,7 @@ For example, if organic matter should be converted to carbon, this conversion mu
 ## 4. Basic usage
 
 ```r
-source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+source("https://raw.githubusercontent.com/moquedace/funcs/main/utils/soil_attr_balance.R")
 
 res <- soil_attr_balance(
   data = soil_data,
@@ -1508,7 +1508,7 @@ because it may remove objects from the user's working environment when sourced.
 ## 14. Minimal reproducible template
 
 ```r
-source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+source("https://raw.githubusercontent.com/moquedace/funcs/main/utils/soil_attr_balance.R")
 
 attrs <- c(
   "c_gkg",

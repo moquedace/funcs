@@ -1,10 +1,10 @@
-# balanced_raster_tiles examples
+﻿# balanced_raster_tiles examples
 
 ## Example 1. Basic use with a raster already loaded in R
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
 )
 
 pkg <- c(
@@ -20,7 +20,7 @@ rm(list = ls())
 gc()
 
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/geospatial/balanced_raster_tiles.R"
 )
 
 project_root <- "D:/usuario_armazenamento/cassio/R/balanced_tiles"
@@ -100,7 +100,7 @@ tile_result$tile_summary %>%
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/geospatial/balanced_raster_tiles.R"
 )
 
 tile_result <- balanced_raster_tiles(
@@ -123,7 +123,7 @@ Use this when the base raster contains `1` for valid cells and `0` or `NA` elsew
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/geospatial/balanced_raster_tiles.R"
 )
 
 mask_raster <- terra::rast(
@@ -146,7 +146,7 @@ tile_result <- balanced_raster_tiles(
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
 )
 
 pkg <- c(
@@ -163,7 +163,7 @@ rm(list = ls())
 gc()
 
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/geospatial/balanced_raster_tiles.R"
 )
 
 rbase <- terra::rast(
@@ -233,7 +233,7 @@ readr::write_csv2(
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
 )
 
 pkg <- c(
@@ -249,7 +249,7 @@ rm(list = ls())
 gc()
 
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/geospatial/balanced_raster_tiles.R"
 )
 
 project_root <- "D:/usuario_armazenamento/cassio/R/balanced_tiles"

@@ -1,4 +1,4 @@
-# FEBR SOILDATA Downloader
+﻿# FEBR SOILDATA Downloader
 
 Utility functions to download soil datasets from the FEBR database using the `febr` R package.
 
@@ -46,7 +46,7 @@ publico/
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/main/download_febr_soildata.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/main/utils/download_febr_soildata.R"
 )
 
 download_manifest <- download_febr_soildata(
@@ -60,7 +60,7 @@ download_manifest <- download_febr_soildata(
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/main/download_febr_soildata.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/main/utils/download_febr_soildata.R"
 )
 
 download_manifest <- download_febr_soildata(
@@ -74,7 +74,7 @@ download_manifest <- download_febr_soildata(
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/main/download_febr_soildata.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/main/utils/download_febr_soildata.R"
 )
 
 download_manifest <- download_febr_soildata(
@@ -207,7 +207,7 @@ write_error
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/main/download_febr_soildata.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/main/utils/download_febr_soildata.R"
 )
 
 download_manifest <- download_febr_soildata(

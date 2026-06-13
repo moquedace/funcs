@@ -1,4 +1,4 @@
-# balanced_raster_tiles
+﻿# balanced_raster_tiles
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The function does not attempt to make tiles with equal geographic area. It prior
 
 ```r
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/balanced_raster_tiles.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/geospatial/balanced_raster_tiles.R"
 )
 
 rbase <- terra::rast("path/to/base_raster.tif")
