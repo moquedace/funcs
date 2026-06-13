@@ -1,4 +1,4 @@
-spl <- function(obj = NULL,
+﻿spl <- function(obj = NULL,
                 id = NULL,
                 upper_limit = NULL,
                 lower_limit = NULL,
@@ -14,7 +14,7 @@ spl <- function(obj = NULL,
   t_start <- Sys.time()
   
   # load required packages (external dependency)
-  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
   install_load_pkg(c("dplyr", "mpspline2"))
   
   # basic input checks

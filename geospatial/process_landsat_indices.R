@@ -1,4 +1,4 @@
-process_landsat_indices <- function(
+﻿process_landsat_indices <- function(
     blue_file,
     green_file,
     red_file,
@@ -29,7 +29,7 @@ process_landsat_indices <- function(
 ) {
   
   source(
-    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
   )
   
   pkg <- c(

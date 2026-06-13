@@ -1,5 +1,5 @@
 ﻿source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
 )
 
 pkg <- c(
@@ -36,15 +36,15 @@ path_raiz <- "//200.235.173.229/dados_processamento/cassio/R/atlas_qf"
 setwd(path_raiz)
 
 source(
-  "https://github.com/moquedace/funcs/blob/main/gbm_custom.R?raw=TRUE"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/modeling/helpers/gbm_custom.R"
 )
 
 source(
-  "https://github.com/moquedace/funcs/blob/main/pst_res_class_multiclass.R?raw=TRUE"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/prediction/pst_res_class_multiclass.R"
 )
 
 source(
-  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/caret_rfe_functions.R"
+  "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/modeling/helpers/caret_rfe_functions.R"
 )
 
 # parameterization

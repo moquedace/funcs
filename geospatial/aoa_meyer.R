@@ -1,4 +1,4 @@
-aoa_meyer <- function(
+﻿aoa_meyer <- function(
     newdata, model = NA, trainDI = NA, train = NULL, weight = NA, 
     variables = "all", CVtest = NULL, CVtrain = NULL, method = "L2", 
     useWeight = TRUE, useCV = TRUE, LPD = FALSE, maxLPD = 1, 
@@ -9,7 +9,7 @@ aoa_meyer <- function(
   
   
   source(
-    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
   )
   
   pkg <- c(

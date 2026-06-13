@@ -1,10 +1,10 @@
-
+﻿
 remove_outliers <- function(
     df, columns, multiplier = 1.5, group_cols = NULL, verbose = FALSE
     ) {
   
   source(
-    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
   )
   
   pkg <- c(

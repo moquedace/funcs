@@ -1,9 +1,9 @@
 suppressWarnings(suppressMessages({
   library(dplyr); library(purrr); library(tibble); library(caret); library(DescTools)
 }))
-source("pst_res_mqi.R")
-source("pst_res_class_multiclass.R")
-source("caret_rfe_functions.R")
+source("../prediction/pst_res_mqi.R")
+source("../prediction/pst_res_class_multiclass.R")
+source("../modeling/helpers/caret_rfe_functions.R")
 
 ok <- TRUE
 chk <- function(cond, msg) {

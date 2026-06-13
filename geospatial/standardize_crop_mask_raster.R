@@ -1,4 +1,4 @@
-standardize_crop_mask_raster <- function(
+﻿standardize_crop_mask_raster <- function(
     rst,
     vct,
     resolution = 500,
@@ -14,7 +14,7 @@ standardize_crop_mask_raster <- function(
   
   # Function to install and load required packages
   source(
-    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+    "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
   )
   
   pkg <- c(

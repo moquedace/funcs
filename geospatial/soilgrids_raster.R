@@ -1,4 +1,4 @@
-info_attribute_link <- "https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs_01.html"
+﻿info_attribute_link <- "https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs_01.html"
 
 soil_attributes <- c(
   "bdod",
@@ -41,7 +41,7 @@ soilgrids_raster <- function(
     vsicurl_prefix = "/vsicurl/"
 ) {
   
-  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
   
   pkg <- c(
     "dplyr", "terra", "geobr", "sf", "future.apply",

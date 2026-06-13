@@ -1,11 +1,11 @@
-explain_future <- function (
+﻿explain_future <- function (
     object, feature_names = NULL, X = NULL, nsim = 1, pred_wrapper = NULL,
     newdata = NULL, adjust = FALSE, baseline = NULL, shap_only = TRUE,
     parallel = FALSE, cores = NULL, n_blocks = 10, ...
 ) 
 {
   cat("🔧 Installing and loading required packages...\n")
-  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+  source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
   
   pkg <- c(
     "dplyr", "future.apply", "stringr", "fastshap", "randomForest", "future",
@@ -91,7 +91,7 @@ explain_future <- function (
         blocks,
         FUN = function(idx) {
           gc()
-          source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+          source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
           suppressPackageStartupMessages(suppressMessages(
             invisible(capture.output(install_load_pkg(pkg)))
           ))
@@ -141,7 +141,7 @@ explain_future <- function (
         idx <- blocks[[i]]
         block_data <- newdata[idx, , drop = FALSE]
         
-        source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+        source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
         suppressPackageStartupMessages(suppressMessages(
           invisible(capture.output(install_load_pkg(pkg)))
         ))
@@ -154,7 +154,7 @@ explain_future <- function (
     
     
     compute_stats <- function(feature) {
-      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
       suppressPackageStartupMessages(suppressMessages(
         invisible(capture.output(install_load_pkg(pkg)))
       ))
@@ -225,7 +225,7 @@ results <- if (parallel) {
     cat("📊 Computing SHAP values without adjustment...\n")
     
     compute_means <- function(feature) {
-      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R")
+      source("https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R")
       suppressPackageStartupMessages(suppressMessages(
         invisible(capture.output(install_load_pkg(pkg)))
       ))

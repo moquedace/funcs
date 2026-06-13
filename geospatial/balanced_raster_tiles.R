@@ -1,4 +1,4 @@
-balanced_raster_tiles <- local({
+﻿balanced_raster_tiles <- local({
 
   balanced_raster_tiles_load_packages <- function() {
 
@@ -13,7 +13,7 @@ balanced_raster_tiles <- local({
     if (!exists("install_load_pkg", mode = "function")) {
       try(
         source(
-          "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/install_load_pkg.R"
+          "https://raw.githubusercontent.com/moquedace/funcs/refs/heads/main/utils/install_load_pkg.R"
         ),
         silent = TRUE
       )
