@@ -1,4 +1,4 @@
-# soil_attr_balance examples
+﻿# soil_attr_balance examples
 
 This file provides practical examples for using `soil_attr_balance()`.
 
@@ -7,7 +7,7 @@ The examples assume that the function is available from GitHub and that the inpu
 ## 1. Load the function
 
 ```r
-source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+source("https://raw.githubusercontent.com/moquedace/funcs/main/utils/soil_attr_balance.R")
 ```
 
 If the function file is stored locally:
@@ -698,7 +698,7 @@ readr::write_csv2(
 ## 20. Recommended practical workflow
 
 ```r
-source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+source("https://raw.githubusercontent.com/moquedace/funcs/main/utils/soil_attr_balance.R")
 
 soil_attributes <- c(
   "c_gkg",

@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="img/readme_banner.svg" alt="funcs banner: R utilities for digital soil mapping, raster workflows, and spatial modelling" width="920">
 </p>
 
@@ -56,7 +56,7 @@ currently structured as a formal R package.
 Source only the function you need:
 
 ```r
-source("https://raw.githubusercontent.com/moquedace/funcs/main/soil_attr_balance.R")
+source("https://raw.githubusercontent.com/moquedace/funcs/main/utils/soil_attr_balance.R")
 
 res <- soil_attr_balance(
   data = soil_data,
@@ -74,7 +74,7 @@ res <- soil_attr_balance(
 For balanced raster processing:
 
 ```r
-source("https://raw.githubusercontent.com/moquedace/funcs/main/balanced_raster_tiles.R")
+source("https://raw.githubusercontent.com/moquedace/funcs/main/geospatial/balanced_raster_tiles.R")
 
 tile_result <- balanced_raster_tiles(
   base_raster = terra::rast("path/to/base_raster.tif"),
